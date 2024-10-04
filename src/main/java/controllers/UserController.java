@@ -63,7 +63,7 @@ public class UserController {
         } catch (IllegalArgumentException e) {
             return new ResponseEntity<>("Invalid email format", HttpStatus.BAD_REQUEST);  // Email format error
         } catch (RuntimeException e) {
-            return new ResponseEntity<>(e.getMessage(), HttpStatus.BAD_REQUEST);  // Other errors (e.g., user not found)
+            return new ResponseEntity<>(e.getMessage(), HttpStatus.BAD_REQUEST);  
         }
     }
 }
