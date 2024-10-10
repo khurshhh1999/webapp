@@ -89,7 +89,7 @@ public class UserController {
             userService.updateUser(userDTO, email);
             return new ResponseEntity<>(HttpStatus.NO_CONTENT);
         } catch (IllegalArgumentException e) {
-            return new ResponseEntity<>("Attempted to update disallowed fields", HttpStatus.BAD_REQUEST);
+            return new ResponseEntity<>("Invalid input", HttpStatus.BAD_REQUEST);
         } catch (RuntimeException e) {
             return new ResponseEntity<>(e.getMessage(), HttpStatus.BAD_REQUEST);
         }

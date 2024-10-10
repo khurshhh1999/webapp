@@ -18,13 +18,13 @@ public class UserManagementService {
     private final BCryptPasswordEncoder passwordEncoder;
 
     private static final String EMAIL_REGEX = "^[A-Za-z0-9+_.-]+@[A-Za-z0-9.-]+$";
-
+    
     @Autowired
     public UserManagementService(UserRepo userRepository, BCryptPasswordEncoder passwordEncoder) {
         this.userRepository = userRepository;
         this.passwordEncoder = passwordEncoder;
     }
-
+    
     private boolean isValidEmail(String email) {
         return Pattern.compile(EMAIL_REGEX).matcher(email).matches();
     }
@@ -58,23 +58,20 @@ public class UserManagementService {
         User existingUser = userRepository.findByEmail(email)
                 .orElseThrow(() -> new RuntimeException("User not found"));
 
-        if (updatedUserDTO.getEmail() != null || 
-            updatedUserDTO.getAccountCreated() != null || 
-            updatedUserDTO.getAccountUpdated() != null) {
-            throw new IllegalArgumentException("Attempted to update disallowed fields");
-        }
+        existingUser.setFirstName(updatedUserDTO.getFirstName());
+        existingUser.setLastName(updatedUserDTO.getLastName());
 
-        if (updatedUserDTO.getFirstName() != null) {
-            existingUser.setFirstName(updatedUserDTO.getFirstName());
-        }
-        if (updatedUserDTO.getLastName() != null) {
-            existingUser.setLastName(updatedUserDTO.getLastName());
-        }
         if (updatedUserDTO.getPassword() != null && !updatedUserDTO.getPassword().isEmpty()) {
             existingUser.setPassword(passwordEncoder.encode(updatedUserDTO.getPassword()));
         }
 
         existingUser.setAccountUpdated(LocalDateTime.now());
         userRepository.save(existingUser);
+    }
+
+    // Add this method for debugging
+    public User getUserByEmail(String email) {
+        return userRepository.findByEmail(email)
+                .orElseThrow(() -> new RuntimeException("User not found with email: " + email));
     }
 }

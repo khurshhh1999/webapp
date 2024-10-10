@@ -32,10 +32,12 @@ public class UserController {
     @PostMapping
     public ResponseEntity<?> createUser(@RequestBody Map<String, Object> userMap, 
                                         @RequestParam(required = false) Map<String, String> queryParams) {
+        // Check for query parameters
         if (!queryParams.isEmpty()) {
             return ResponseEntity.status(HttpStatus.METHOD_NOT_ALLOWED).build();
         }
 
+        // Check for disallowed fields
         if (!userMap.keySet().stream().allMatch(ALLOWED_CREATE_FIELDS::contains)) {
             return ResponseEntity.status(HttpStatus.BAD_REQUEST).body("Invalid fields in request body");
         }
@@ -71,10 +73,12 @@ public class UserController {
     @PutMapping("/self")
     public ResponseEntity<?> updateUser(@RequestBody Map<String, Object> userMap, 
                                         @RequestParam(required = false) Map<String, String> queryParams) {
+        // Check for query parameters
         if (!queryParams.isEmpty()) {
             return ResponseEntity.status(HttpStatus.METHOD_NOT_ALLOWED).build();
         }
 
+        // Check for disallowed fields
         if (!userMap.keySet().stream().allMatch(ALLOWED_UPDATE_FIELDS::contains)) {
             return ResponseEntity.status(HttpStatus.BAD_REQUEST).body("Invalid fields in request body");
         }
@@ -89,7 +93,7 @@ public class UserController {
             userService.updateUser(userDTO, email);
             return new ResponseEntity<>(HttpStatus.NO_CONTENT);
         } catch (IllegalArgumentException e) {
-            return new ResponseEntity<>("Attempted to update disallowed fields", HttpStatus.BAD_REQUEST);
+            return new ResponseEntity<>("Invalid input", HttpStatus.BAD_REQUEST);
         } catch (RuntimeException e) {
             return new ResponseEntity<>(e.getMessage(), HttpStatus.BAD_REQUEST);
         }
