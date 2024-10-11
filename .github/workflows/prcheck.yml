@@ -1,11 +1,20 @@
-name: webapp CI
+name: Initial Workflow
+run-name: Workflow to check package installation
 
-on:
+on: 
   pull_request:
-    branches:
+    types: 
+      - opened
+      - reopened 
+    branches: 
       - main
 
 jobs:
+  checks-compile-code-install-packages:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
   build:
     runs-on: ubuntu-latest
 

@@ -1,19 +1,28 @@
-name: webapp-ci-cd
+name: Initial Workflow
+run-name: Workflow to check package installation
 
-on:
+on: 
   pull_request:
-    branches:
+    types: 
+      - opened
+      - reopened 
+    branches: 
       - main
 
 jobs:
+  checks-compile-code-install-packages:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
   build:
     runs-on: ubuntu-latest
 
     steps:
-    - uses: actions/checkout@v3
+    - uses: actions/checkout@v2
 
     - name: Set up JDK 17
-      uses: actions/setup-java@v3
+      uses: actions/setup-java@v2
       with:
         java-version: '17'
         distribution: 'adopt'
