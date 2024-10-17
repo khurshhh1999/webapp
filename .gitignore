@@ -29,6 +29,26 @@ workspaceStorage/
 workspaceStorage/*
 
 
+# Packer cache and artifacts
+packer_cache/
+*.ami
+
+# AWS credentials
+*.pem
+*.key
+
+# Secrets and sensitive files
+*.secrets
+*.env
+
+# System files
+.DS_Store
+
+# IntelliJ IDEA files
+.idea/
+*.iml
+
+
 # virtual machine crash logs, see http://www.java.com/en/download/help/error_hotspot.xml
 hs_err_pid*
 replay_pid*

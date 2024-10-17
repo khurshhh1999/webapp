@@ -10,29 +10,28 @@ import models.User;
 
 public class UserDTO {
 
-    private Long id;
-    @NotBlank(message = "Email is required")
-    @Email(message = "Invalid email format")
-    @JsonProperty("email")
+    @NotBlank(message = "Email is mandatory")
+    @Email(message = "Email should be valid")
     private String email;
 
-    @NotBlank(message = "First name is required")
-    @JsonProperty("firstName") //first_name
+    @NotBlank(message = "Password is mandatory")
+    private String password;
+
+    @NotBlank(message = "First name is mandatory")
     private String firstName;
 
-    @NotBlank(message = "Last name is required")
-    @JsonProperty("lastName") //lastName
+    @NotBlank(message = "Last name is mandatory")
     private String lastName;
 
-    @JsonProperty("account_created")
+    // Exclude these fields from deserialization
+    @JsonProperty(access = JsonProperty.Access.READ_ONLY)
+    private Long id;
+
+    @JsonProperty(access = JsonProperty.Access.READ_ONLY)
     private LocalDateTime accountCreated;
 
-    @JsonProperty("account_updated")
+    @JsonProperty(access = JsonProperty.Access.READ_ONLY)
     private LocalDateTime accountUpdated;
-
-    @NotBlank(message = "Password is required") 
-    @JsonProperty(access = JsonProperty.Access.WRITE_ONLY)
-    private String password;
 
     // Constructor that maps User model to DTO
     public UserDTO(User user) {
