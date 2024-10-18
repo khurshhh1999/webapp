@@ -16,6 +16,7 @@ import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
 import dto.UserDTO;
+import jakarta.validation.Valid;
 import models.User;
 import services.UserManagementService;
 
@@ -30,23 +31,11 @@ public class UserController {
     private static final Set<String> ALLOWED_UPDATE_FIELDS = Set.of("firstName", "lastName", "password");
 
     @PostMapping
-    public ResponseEntity<?> createUser(@RequestBody Map<String, Object> userMap, 
-                                        @RequestParam(required = false) Map<String, String> queryParams) {
-        if (!queryParams.isEmpty()) {
+    public ResponseEntity<?> createUser(@Valid @RequestBody UserDTO userDTO, @RequestParam(required = false) Map<String, String> queryParams) {
+        if (queryParams != null && !queryParams.isEmpty()) {
             return ResponseEntity.status(HttpStatus.METHOD_NOT_ALLOWED).build();
         }
-
-        if (!userMap.keySet().stream().allMatch(ALLOWED_CREATE_FIELDS::contains)) {
-            return ResponseEntity.status(HttpStatus.BAD_REQUEST).body("Invalid fields in request body");
-        }
-
         try {
-            UserDTO userDTO = new UserDTO();
-            userDTO.setEmail((String) userMap.get("email"));
-            userDTO.setPassword((String) userMap.get("password"));
-            userDTO.setFirstName((String) userMap.get("firstName"));
-            userDTO.setLastName((String) userMap.get("lastName"));
-
             User user = userService.createUser(
                 userDTO.getEmail(),
                 userDTO.getPassword(),
@@ -60,6 +49,7 @@ public class UserController {
             return ResponseEntity.badRequest().body(e.getMessage());
         }
     }
+    
 
     @GetMapping("/self")
     public ResponseEntity<UserDTO> getUserInfo() {
@@ -69,8 +59,7 @@ public class UserController {
     }
 
     @PutMapping("/self")
-    public ResponseEntity<?> updateUser(@RequestBody Map<String, Object> userMap, 
-                                        @RequestParam(required = false) Map<String, String> queryParams) {
+    public ResponseEntity<?> updateUser(@Valid @RequestBody Map<String, Object> userMap, @RequestParam(required = false) Map<String, String> queryParams) {
         if (!queryParams.isEmpty()) {
             return ResponseEntity.status(HttpStatus.METHOD_NOT_ALLOWED).build();
         }

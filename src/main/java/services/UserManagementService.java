@@ -23,6 +23,8 @@ public class UserManagementService {
     public UserManagementService(UserRepo userRepository, BCryptPasswordEncoder passwordEncoder) {
         this.userRepository = userRepository;
         this.passwordEncoder = passwordEncoder;
+        System.out.println("PasswordEncoder injected: " + (passwordEncoder != null));
+
     }
 
     private boolean isValidEmail(String email) {
@@ -30,13 +32,16 @@ public class UserManagementService {
     }
 
     public User createUser(String email, String password, String firstName, String lastName) {
+        System.out.println("Attempting to create user with email: " + email);
         if (!isValidEmail(email)) {
+            System.out.println("Invalid email format: " + email);
             throw new IllegalArgumentException("Invalid email format");
         }
 
         if (userRepository.existsByEmail(email)) {
+            System.out.println("User already exists with email: " + email);
             throw new RuntimeException("User with this email already exists");
-        }
+        }   
 
         User user = new User();
         user.setEmail(email);
