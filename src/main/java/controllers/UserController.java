@@ -12,7 +12,6 @@ import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.PutMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
-import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
 import dto.UserDTO;
@@ -31,10 +30,7 @@ public class UserController {
     private static final Set<String> ALLOWED_UPDATE_FIELDS = Set.of("firstName", "lastName", "password");
 
     @PostMapping
-    public ResponseEntity<?> createUser(@Valid @RequestBody UserDTO userDTO, @RequestParam(required = false) Map<String, String> queryParams) {
-        if (queryParams != null && !queryParams.isEmpty()) {
-            return ResponseEntity.status(HttpStatus.METHOD_NOT_ALLOWED).build();
-        }
+    public ResponseEntity<?> createUser(@Valid @RequestBody UserDTO userDTO) {
         try {
             User user = userService.createUser(
                 userDTO.getEmail(),
@@ -49,7 +45,6 @@ public class UserController {
             return ResponseEntity.badRequest().body(e.getMessage());
         }
     }
-    
 
     @GetMapping("/self")
     public ResponseEntity<UserDTO> getUserInfo() {
@@ -59,11 +54,7 @@ public class UserController {
     }
 
     @PutMapping("/self")
-    public ResponseEntity<?> updateUser(@Valid @RequestBody Map<String, Object> userMap, @RequestParam(required = false) Map<String, String> queryParams) {
-        if (!queryParams.isEmpty()) {
-            return ResponseEntity.status(HttpStatus.METHOD_NOT_ALLOWED).build();
-        }
-
+    public ResponseEntity<?> updateUser(@Valid @RequestBody Map<String, Object> userMap) {
         if (!userMap.keySet().stream().allMatch(ALLOWED_UPDATE_FIELDS::contains)) {
             return ResponseEntity.status(HttpStatus.BAD_REQUEST).body("Invalid fields in request body");
         }

@@ -39,6 +39,7 @@ public class WebSecurityConfig {
             .httpBasic(httpBasic -> {})
             .userDetailsService(userDetailsService);
 
+        http.addFilterBefore(new RequestValidationFilter(), UsernamePasswordAuthenticationFilter.class);
         http.addFilterBefore(new ApiMethodNotAllowedFilter(), UsernamePasswordAuthenticationFilter.class);
         
         return http.build();

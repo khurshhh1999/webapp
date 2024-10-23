@@ -29,10 +29,18 @@ jobs:
       - name: Install Packer
         uses: hashicorp/setup-packer@v2
         with:
-          packer_version: latest
+          version: '1.8.7'
 
       - name: Build AMI with Packer
         run: |
           packer init packer-webapp.pkr.hcl
           packer validate packer-webapp.pkr.hcl
-          packer build -var "db_user=${{ secrets.DB_USER }}" -var "db_password=${{ secrets.DB_PASSWORD }}" packer-webapp.pkr.hcl
+          packer build \
+            -var "aws_profile=${{ secrets.AWS_PROFILE }}" \
+            -var "aws_region=${{ env.AWS_REGION }}" \
+            -var "ami_name=webapp-ami-$(date +%s)" \
+            -var "dev_account_id=${{ secrets.DEV_ACCOUNT_ID }}" \
+            -var "demo_account_id=${{ secrets.DEMO_ACCOUNT_ID }}" \
+            -var "db_user=${{ secrets.DB_USER }}" \
+            -var "db_password=${{ secrets.DB_PASSWORD }}" \
+            packer-webapp.pkr.hcl
