@@ -39,15 +39,15 @@ variable "db_password" {
 }
 
 source "amazon-ebs" "ubuntu" {
-  profile                 = var.aws_profile
-  region                  = var.aws_region
-  instance_type           = "t3.medium"
-  ami_users = []
-  ami_groups = []
-  ssh_username            = "ubuntu"
-  ami_name                = var.ami_name
+  profile                     = var.aws_profile
+  region                      = var.aws_region
+  instance_type              = "t3.medium"
+  ami_users                  = []
+  ami_groups                 = []
+  ssh_username               = "ubuntu"
+  ami_name                   = var.ami_name
   associate_public_ip_address = true
-  ssh_timeout             = "5m"
+  ssh_timeout                = "5m"
 
   source_ami_filter {
     filters = {
@@ -96,10 +96,27 @@ build {
     destination = "/home/ubuntu/app.jar"
   }
 
-  provisioner "file" {
-    source      = "myapp.service"
-    destination = "/home/ubuntu/myapp.service"
-    timeout     = "10m"
+  provisioner "shell" {
+    inline = [
+      "sudo touch /home/ubuntu/myapp.service",
+      "echo '[Unit]' | sudo tee /home/ubuntu/myapp.service",
+      "echo 'Description=Spring Boot WebApp Service' | sudo tee -a /home/ubuntu/myapp.service",
+      "echo 'After=network.target' | sudo tee -a /home/ubuntu/myapp.service",
+      "echo '' | sudo tee -a /home/ubuntu/myapp.service",
+      "echo '[Service]' | sudo tee -a /home/ubuntu/myapp.service",
+      "echo 'Type=simple' | sudo tee -a /home/ubuntu/myapp.service",
+      "echo 'User=csye6225' | sudo tee -a /home/ubuntu/myapp.service",
+      "echo 'ExecStart=/usr/bin/java -jar /opt/myapp/app.jar' | sudo tee -a /home/ubuntu/myapp.service",
+      "echo 'Restart=on-failure' | sudo tee -a /home/ubuntu/myapp.service",
+      "echo 'Environment=DB_USER=${var.db_user}' | sudo tee -a /home/ubuntu/myapp.service",
+      "echo 'Environment=DB_PASSWORD=${var.db_password}' | sudo tee -a /home/ubuntu/myapp.service",
+      "echo 'Environment=DB_HOST=localhost' | sudo tee -a /home/ubuntu/myapp.service",
+      "echo 'Environment=DB_PORT=5432' | sudo tee -a /home/ubuntu/myapp.service",
+      "echo 'Environment=DB_NAME=csye6225' | sudo tee -a /home/ubuntu/myapp.service",
+      "echo '' | sudo tee -a /home/ubuntu/myapp.service",
+      "echo '[Install]' | sudo tee -a /home/ubuntu/myapp.service",
+      "echo 'WantedBy=multi-user.target' | sudo tee -a /home/ubuntu/myapp.service"
+    ]
   }
 
   provisioner "shell" {
