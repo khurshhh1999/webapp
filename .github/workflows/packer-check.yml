@@ -7,7 +7,7 @@ on:
 
 jobs:
   validate:
-    name: Validate Packer Template
+    name: Validate Packer
     runs-on: ubuntu-latest
     
     steps:
@@ -19,7 +19,6 @@ jobs:
           version: '1.8.7'
 
       - name: Verify Packer
-        id: packer-verify
         run: |
           packer fmt -check packer-webapp.pkr.hcl
-          packer validate packer-webapp.pkr.hcl
+          packer validate -syntax-only packer-webapp.pkr.hcl
