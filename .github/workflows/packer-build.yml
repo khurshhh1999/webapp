@@ -1,11 +1,12 @@
 name: Packer AMI Build
+
 on:
   push:
     branches:
       - main
 
 env:
-  AWS_REGION: us-east-1  
+  AWS_REGION: us-east-1
 
 jobs:
   build-ami:
@@ -15,32 +16,34 @@ jobs:
         uses: actions/checkout@v4
 
       - name: Configure AWS Credentials
-        uses: aws-actions/configure-aws-credentials@v2
+        uses: aws-actions/configure-aws-credentials@v4
         with:
           aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
           aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
           aws-region: ${{ env.AWS_REGION }}
-
-      - name: Debug AWS Configuration
-        run: |
-          aws sts get-caller-identity
-          aws ec2 describe-regions --output table --region us-east-1
 
       - name: Install Packer
         uses: hashicorp/setup-packer@v2
         with:
           version: '1.8.7'
 
-      - name: Build AMI with Packer
+      - name: Build AMI
+        env:
+          DEV_ACCOUNT_ID: ${{ secrets.DEV_ACCOUNT_ID }}
+          DEMO_ACCOUNT_ID: ${{ secrets.DEMO_ACCOUNT_ID }}
+          DB_USER: ${{ secrets.DB_USER }}
+          DB_PASSWORD: ${{ secrets.DB_PASSWORD }}
         run: |
-          packer init packer-webapp.pkr.hcl
-          packer validate packer-webapp.pkr.hcl
+          packer init .
+          packer validate \
+            -var "dev_account_id=${DEV_ACCOUNT_ID}" \
+            -var "demo_account_id=${DEMO_ACCOUNT_ID}" \
+            -var "db_user=${DB_USER}" \
+            -var "db_password=${DB_PASSWORD}" \
+            packer-webapp.pkr.hcl
           packer build \
-            -var "aws_profile=${{ secrets.AWS_PROFILE }}" \
-            -var "aws_region=${{ env.AWS_REGION }}" \
-            -var "ami_name=webapp-ami-$(date +%s)" \
-            -var "dev_account_id=${{ secrets.DEV_ACCOUNT_ID }}" \
-            -var "demo_account_id=${{ secrets.DEMO_ACCOUNT_ID }}" \
-            -var "db_user=${{ secrets.DB_USER }}" \
-            -var "db_password=${{ secrets.DB_PASSWORD }}" \
+            -var "dev_account_id=${DEV_ACCOUNT_ID}" \
+            -var "demo_account_id=${DEMO_ACCOUNT_ID}" \
+            -var "db_user=${DB_USER}" \
+            -var "db_password=${DB_PASSWORD}" \
             packer-webapp.pkr.hcl
