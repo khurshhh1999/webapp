@@ -106,8 +106,8 @@ build {
       "echo 'ExecStart=/usr/bin/java -jar -Dserver.port=8080 -Dspring.profiles.active=prod /opt/myapp/app.jar' | sudo tee -a /home/ubuntu/myapp.service",
       "echo 'Restart=always' | sudo tee -a /home/ubuntu/myapp.service",
       "echo 'RestartSec=3' | sudo tee -a /home/ubuntu/myapp.service",
-      "echo 'Environment=DB_USER=${var.db_user}' | sudo tee -a /home/ubuntu/myapp.service",
-      "echo 'Environment=DB_PASSWORD=${var.db_password}' | sudo tee -a /home/ubuntu/myapp.service",
+      "echo 'Environment=DB_USER={{user `db_user`}}' | sudo tee -a /home/ubuntu/myapp.service",
+      "echo 'Environment=DB_PASSWORD={{user `db_password`}}' | sudo tee -a /home/ubuntu/myapp.service",
       "echo 'Environment=DB_HOST=localhost' | sudo tee -a /home/ubuntu/myapp.service",
       "echo 'Environment=DB_PORT=5432' | sudo tee -a /home/ubuntu/myapp.service",
       "echo 'Environment=DB_NAME=csye6225' | sudo tee -a /home/ubuntu/myapp.service",
@@ -116,7 +116,6 @@ build {
       "echo 'WantedBy=multi-user.target' | sudo tee -a /home/ubuntu/myapp.service"
     ]
   }
-
   provisioner "shell" {
     inline = [
       "sudo groupadd csye6225 || true",
