@@ -1,9 +1,11 @@
 name: PR Build and Test
 run-name: "PR #${{ github.event.number }} - Build Validation"
+
 on:
   pull_request:
     branches:
       - main
+  workflow_dispatch:
 
 jobs:
   build-test:
