@@ -12,11 +12,6 @@ variable "aws_profile" {
   default = "dev"
 }
 
-variable "instance_type" {
-  type    = string
-  default = "t3.medium"
-}
-
 variable "dev_account_id" {
   type = string
 }
@@ -46,7 +41,7 @@ variable "db_password" {
 source "amazon-ebs" "ubuntu" {
   profile                     = var.aws_profile
   region                      = var.aws_region
-  instance_type              = var.instance_type
+  instance_type              = "t3.medium"
   ami_users                  = []
   ssh_username               = "ubuntu"
   ami_name                   = var.ami_name
@@ -68,11 +63,6 @@ source "amazon-ebs" "ubuntu" {
     }
     owners      = ["099720109477"]
     most_recent = true
-  }
-
-  tags = {
-    Name = "webapp-ami"
-    Environment = "development"
   }
 }
 
