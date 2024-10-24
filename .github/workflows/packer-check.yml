@@ -1,4 +1,5 @@
 name: Packer Validation
+run-name: "PR #${{ github.event.number }} - Validate Packer Configuration"
 
 on:
   pull_request:
