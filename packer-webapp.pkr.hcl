@@ -12,6 +12,11 @@ variable "aws_profile" {
   default = "dev"
 }
 
+variable "instance_type" {
+  type    = string
+  default = "t3.medium"
+}
+
 variable "dev_account_id" {
   type = string
 }
@@ -41,13 +46,19 @@ variable "db_password" {
 source "amazon-ebs" "ubuntu" {
   profile                     = var.aws_profile
   region                      = var.aws_region
-  instance_type              = "t3.medium"
-  ami_users                  = []
-  ami_groups                 = []
+  instance_type              = var.instance_type
+  ami_users                  = [var.dev_account_id, var.demo_account_id]
   ssh_username               = "ubuntu"
   ami_name                   = var.ami_name
   associate_public_ip_address = true
   ssh_timeout                = "5m"
+
+  launch_block_device_mappings {
+    device_name           = "/dev/sda1"
+    volume_size          = 8
+    volume_type          = "gp2"
+    delete_on_termination = true
+  }
 
   source_ami_filter {
     filters = {
@@ -57,6 +68,11 @@ source "amazon-ebs" "ubuntu" {
     }
     owners      = ["099720109477"]
     most_recent = true
+  }
+
+  tags = {
+    Name = "webapp-ami"
+    Environment = "development"
   }
 }
 
@@ -101,13 +117,14 @@ build {
       "sudo touch /home/ubuntu/myapp.service",
       "echo '[Unit]' | sudo tee /home/ubuntu/myapp.service",
       "echo 'Description=Spring Boot WebApp Service' | sudo tee -a /home/ubuntu/myapp.service",
-      "echo 'After=network.target' | sudo tee -a /home/ubuntu/myapp.service",
+      "echo 'After=network.target postgresql.service' | sudo tee -a /home/ubuntu/myapp.service",
       "echo '' | sudo tee -a /home/ubuntu/myapp.service",
       "echo '[Service]' | sudo tee -a /home/ubuntu/myapp.service",
       "echo 'Type=simple' | sudo tee -a /home/ubuntu/myapp.service",
       "echo 'User=csye6225' | sudo tee -a /home/ubuntu/myapp.service",
-      "echo 'ExecStart=/usr/bin/java -jar /opt/myapp/app.jar' | sudo tee -a /home/ubuntu/myapp.service",
-      "echo 'Restart=on-failure' | sudo tee -a /home/ubuntu/myapp.service",
+      "echo 'ExecStart=/usr/bin/java -jar -Dserver.port=8080 -Dspring.profiles.active=prod /opt/myapp/app.jar' | sudo tee -a /home/ubuntu/myapp.service",
+      "echo 'Restart=always' | sudo tee -a /home/ubuntu/myapp.service",
+      "echo 'RestartSec=3' | sudo tee -a /home/ubuntu/myapp.service",
       "echo 'Environment=DB_USER=${var.db_user}' | sudo tee -a /home/ubuntu/myapp.service",
       "echo 'Environment=DB_PASSWORD=${var.db_password}' | sudo tee -a /home/ubuntu/myapp.service",
       "echo 'Environment=DB_HOST=localhost' | sudo tee -a /home/ubuntu/myapp.service",
