@@ -102,7 +102,7 @@ build {
     destination = "/home/ubuntu/app.jar"
   }
 
-  provisioner "shell" {
+  provisioner "shell" {s
     inline = [
       "sudo touch /home/ubuntu/myapp.service",
       "echo '[Unit]' | sudo tee /home/ubuntu/myapp.service",
