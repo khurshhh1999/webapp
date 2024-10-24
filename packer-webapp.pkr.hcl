@@ -12,6 +12,11 @@ variable "aws_profile" {
   default = "dev"
 }
 
+variable "instance_type" {
+  type    = string
+  default = "t3.medium"
+}
+
 variable "dev_account_id" {
   type = string
 }
@@ -41,7 +46,7 @@ variable "db_password" {
 source "amazon-ebs" "ubuntu" {
   profile                     = var.aws_profile
   region                      = var.aws_region
-  instance_type              = "t3.medium"
+  instance_type              = var.instance_type
   ami_users                  = []
   ssh_username               = "ubuntu"
   ami_name                   = var.ami_name
@@ -77,23 +82,9 @@ build {
       "sudo add-apt-repository ppa:openjdk-r/ppa",
       "sudo apt-get update --allow-unauthenticated",
       "sudo apt-get install -y openjdk-17-jdk --allow-unauthenticated",
-      "sudo apt-get install -y postgresql postgresql-contrib --allow-unauthenticated",
       "sudo systemctl enable postgresql",
       "sudo systemctl start postgresql",
       "sleep 10"
-    ]
-  }
-
-  provisioner "file" {
-    source      = "db-setup.sh"
-    destination = "/home/ubuntu/db-setup.sh"
-  }
-
-  provisioner "shell" {
-    inline = [
-      "sudo chmod +x /home/ubuntu/db-setup.sh",
-      "sudo DB_USER='${var.db_user}' DB_PASSWORD='${var.db_password}' /home/ubuntu/db-setup.sh",
-      "sudo rm /home/ubuntu/db-setup.sh"
     ]
   }
 
@@ -102,12 +93,12 @@ build {
     destination = "/home/ubuntu/app.jar"
   }
 
-  provisioner "shell" {s
+  provisioner "shell" {
     inline = [
       "sudo touch /home/ubuntu/myapp.service",
       "echo '[Unit]' | sudo tee /home/ubuntu/myapp.service",
       "echo 'Description=Spring Boot WebApp Service' | sudo tee -a /home/ubuntu/myapp.service",
-      "echo 'After=network.target postgresql.service' | sudo tee -a /home/ubuntu/myapp.service",
+      "echo 'After=network.target' | sudo tee -a /home/ubuntu/myapp.service",
       "echo '' | sudo tee -a /home/ubuntu/myapp.service",
       "echo '[Service]' | sudo tee -a /home/ubuntu/myapp.service",
       "echo 'Type=simple' | sudo tee -a /home/ubuntu/myapp.service",
