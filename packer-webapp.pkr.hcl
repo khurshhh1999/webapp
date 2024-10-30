@@ -90,11 +90,6 @@ build {
   }
 
   provisioner "file" {
-    source      = "app.jar"
-    destination = "/home/ubuntu/app.jar"
-  }
-
-  provisioner "file" {
     source      = "db-setup.sh"
     destination = "/home/ubuntu/db-setup.sh"
   }
@@ -105,6 +100,12 @@ build {
       "sudo /home/ubuntu/db-setup.sh"
     ]
   }
+
+  provisioner "file" {
+    source      = "app.jar"
+    destination = "/home/ubuntu/app.jar"
+  }
+
   provisioner "file" {
     source      = "myapp.service"
     destination = "/home/ubuntu/myapp.service"
@@ -122,7 +123,7 @@ build {
       "sudo chmod 644 /etc/systemd/system/myapp.service",
       "sudo systemctl daemon-reload",
       "sudo systemctl enable myapp.service",
-      "sudo systemctl start myapp.service"
+      "sudo systemctl start myapp.service || true"
     ]
   }
 }
