@@ -90,11 +90,6 @@ build {
   }
 
   provisioner "file" {
-    source      = "app.jar"
-    destination = "/home/ubuntu/app.jar"
-  }
-
-  provisioner "file" {
     source      = "db-setup.sh"
     destination = "/home/ubuntu/db-setup.sh"
   }
@@ -106,28 +101,14 @@ build {
     ]
   }
 
-  provisioner "shell" {
-    inline = [
-      "sudo bash -c 'cat > /etc/systemd/system/myapp.service <<EOF'",
-      "[Unit]",
-      "Description=Spring Boot WebApp Service",
-      "After=network.target",
-      "",
-      "[Service]",
-      "Type=simple",
-      "User=csye6225",
-      "ExecStart=/usr/bin/java -jar /opt/myapp/app.jar",
-      "Restart=on-failure",
-      "Environment=DB_USER=${var.db_user}",
-      "Environment=DB_PASSWORD=${var.db_password}",
-      "Environment=DB_HOST=localhost",
-      "Environment=DB_PORT=5432",
-      "Environment=DB_NAME=csye6225",
-      "",
-      "[Install]",
-      "WantedBy=multi-user.target",
-      "EOF'"
-    ]
+  provisioner "file" {
+    source      = "app.jar"
+    destination = "/home/ubuntu/app.jar"
+  }
+
+  provisioner "file" {
+    source      = "myapp.service"
+    destination = "/home/ubuntu/myapp.service"
   }
 
   provisioner "shell" {
@@ -137,9 +118,12 @@ build {
       "sudo mkdir -p /opt/myapp",
       "sudo mv /home/ubuntu/app.jar /opt/myapp/app.jar",
       "sudo chown -R csye6225:csye6225 /opt/myapp",
+      "sudo mv /home/ubuntu/myapp.service /etc/systemd/system/myapp.service",
+      "sudo chown root:root /etc/systemd/system/myapp.service",
+      "sudo chmod 644 /etc/systemd/system/myapp.service",
       "sudo systemctl daemon-reload",
       "sudo systemctl enable myapp.service",
-      "sudo systemctl start myapp.service"
+      "sudo systemctl start myapp.service || true"
     ]
   }
 }
