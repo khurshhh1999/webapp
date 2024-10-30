@@ -46,17 +46,17 @@ variable "db_password" {
 source "amazon-ebs" "ubuntu" {
   profile                     = var.aws_profile
   region                      = var.aws_region
-  instance_type              = var.instance_type
-  ami_users                  = []
-  ssh_username               = "ubuntu"
-  ami_name                   = var.ami_name
+  instance_type               = var.instance_type
+  ami_users                   = []
+  ssh_username                = "ubuntu"
+  ami_name                    = var.ami_name
   associate_public_ip_address = true
-  ssh_timeout                = "5m"
+  ssh_timeout                 = "5m"
 
   launch_block_device_mappings {
     device_name           = "/dev/sda1"
-    volume_size          = 8
-    volume_type          = "gp2"
+    volume_size           = 8
+    volume_type           = "gp2"
     delete_on_termination = true
   }
 
@@ -82,6 +82,7 @@ build {
       "sudo add-apt-repository ppa:openjdk-r/ppa",
       "sudo apt-get update --allow-unauthenticated",
       "sudo apt-get install -y openjdk-17-jdk --allow-unauthenticated",
+      "sudo apt-get install -y postgresql postgresql-contrib",
       "sudo systemctl enable postgresql",
       "sudo systemctl start postgresql",
       "sleep 10"
@@ -93,29 +94,42 @@ build {
     destination = "/home/ubuntu/app.jar"
   }
 
+  provisioner "file" {
+    source      = "db-setup.sh"
+    destination = "/home/ubuntu/db-setup.sh"
+  }
+
   provisioner "shell" {
     inline = [
-      "sudo touch /home/ubuntu/myapp.service",
-      "echo '[Unit]' | sudo tee /home/ubuntu/myapp.service",
-      "echo 'Description=Spring Boot WebApp Service' | sudo tee -a /home/ubuntu/myapp.service",
-      "echo 'After=network.target' | sudo tee -a /home/ubuntu/myapp.service",
-      "echo '' | sudo tee -a /home/ubuntu/myapp.service",
-      "echo '[Service]' | sudo tee -a /home/ubuntu/myapp.service",
-      "echo 'Type=simple' | sudo tee -a /home/ubuntu/myapp.service",
-      "echo 'User=csye6225' | sudo tee -a /home/ubuntu/myapp.service",
-      "echo 'ExecStart=/usr/bin/java -jar -Dserver.port=8080 -Dspring.profiles.active=prod /opt/myapp/app.jar' | sudo tee -a /home/ubuntu/myapp.service",
-      "echo 'Restart=always' | sudo tee -a /home/ubuntu/myapp.service",
-      "echo 'RestartSec=3' | sudo tee -a /home/ubuntu/myapp.service",
-      "echo 'Environment=DB_USER={{user `db_user`}}' | sudo tee -a /home/ubuntu/myapp.service",
-      "echo 'Environment=DB_PASSWORD={{user `db_password`}}' | sudo tee -a /home/ubuntu/myapp.service",
-      "echo 'Environment=DB_HOST=localhost' | sudo tee -a /home/ubuntu/myapp.service",
-      "echo 'Environment=DB_PORT=5432' | sudo tee -a /home/ubuntu/myapp.service",
-      "echo 'Environment=DB_NAME=csye6225' | sudo tee -a /home/ubuntu/myapp.service",
-      "echo '' | sudo tee -a /home/ubuntu/myapp.service",
-      "echo '[Install]' | sudo tee -a /home/ubuntu/myapp.service",
-      "echo 'WantedBy=multi-user.target' | sudo tee -a /home/ubuntu/myapp.service"
+      "chmod +x /home/ubuntu/db-setup.sh",
+      "sudo /home/ubuntu/db-setup.sh"
     ]
   }
+
+  provisioner "shell" {
+    inline = [
+      "sudo bash -c 'cat > /etc/systemd/system/myapp.service <<EOF'",
+      "[Unit]",
+      "Description=Spring Boot WebApp Service",
+      "After=network.target",
+      "",
+      "[Service]",
+      "Type=simple",
+      "User=csye6225",
+      "ExecStart=/usr/bin/java -jar /opt/myapp/app.jar",
+      "Restart=on-failure",
+      "Environment=DB_USER=${var.db_user}",
+      "Environment=DB_PASSWORD=${var.db_password}",
+      "Environment=DB_HOST=localhost",
+      "Environment=DB_PORT=5432",
+      "Environment=DB_NAME=csye6225",
+      "",
+      "[Install]",
+      "WantedBy=multi-user.target",
+      "EOF'"
+    ]
+  }
+
   provisioner "shell" {
     inline = [
       "sudo groupadd csye6225 || true",
@@ -123,9 +137,9 @@ build {
       "sudo mkdir -p /opt/myapp",
       "sudo mv /home/ubuntu/app.jar /opt/myapp/app.jar",
       "sudo chown -R csye6225:csye6225 /opt/myapp",
-      "sudo mv /home/ubuntu/myapp.service /etc/systemd/system/myapp.service",
       "sudo systemctl daemon-reload",
-      "sudo systemctl enable myapp.service"
+      "sudo systemctl enable myapp.service",
+      "sudo systemctl start myapp.service"
     ]
   }
 }
