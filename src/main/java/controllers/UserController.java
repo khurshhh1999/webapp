@@ -31,6 +31,10 @@ public class UserController {
 
     @PostMapping
     public ResponseEntity<?> createUser(@Valid @RequestBody UserDTO userDTO) {
+        System.out.println("Received DTO: " + userDTO);
+        System.out.println("firstName: " + userDTO.getFirstName());
+        System.out.println("lastName: " + userDTO.getLastName());
+        System.out.println("email: " + userDTO.getEmail());
         try {
             User user = userService.createUser(
                 userDTO.getEmail(),

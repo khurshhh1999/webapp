@@ -21,24 +21,24 @@ public class RequestValidationFilter extends OncePerRequestFilter {
     @Override
     protected void doFilterInternal(HttpServletRequest request, HttpServletResponse response, FilterChain filterChain)
             throws ServletException, IOException {
-        
-        // Check for query parameters
+
+        if (request.getContentType() != null && request.getContentType().startsWith("multipart/form-data")) {
+            filterChain.doFilter(request, response);
+            return;
+        }
         if (request.getQueryString() != null) {
             response.setStatus(HttpStatus.METHOD_NOT_ALLOWED.value());
             response.getWriter().write("Query parameters are not allowed");
             return;
         }
 
-        // Only validate POST and PUT requests for body content
         if (request.getMethod().equals("POST") || request.getMethod().equals("PUT")) {
             String requestBody = request.getReader().lines().collect(Collectors.joining());
             
-            // Skip empty bodies
             if (!requestBody.isEmpty()) {
                 try {
                     Map<?, ?> bodyMap = objectMapper.readValue(requestBody, Map.class);
                     
-                    // Check for restricted fields
                     if (bodyMap.containsKey("dateCreated") || 
                         bodyMap.containsKey("accountCreated") || 
                         bodyMap.containsKey("accountUpdated") || 
@@ -49,11 +49,9 @@ public class RequestValidationFilter extends OncePerRequestFilter {
                         return;
                     }
                     
-                    // Create a new request wrapper
                     CachedBodyHttpServletRequest cachedRequest = new CachedBodyHttpServletRequest(request);
                     cachedRequest.setCachedBody(requestBody.getBytes());
                     
-                    // Continue with the modified request
                     filterChain.doFilter(cachedRequest, response);
                     return;
                     

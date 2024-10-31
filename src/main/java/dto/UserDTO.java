@@ -10,6 +10,14 @@ import models.User;
 
 public class UserDTO {
 
+    @NotBlank(message = "First name is mandatory")
+    @JsonProperty("firstName")
+    private String firstName;
+
+    @NotBlank(message = "Last name is mandatory")
+    @JsonProperty("lastName")
+    private String lastName;
+
     @NotBlank(message = "Email is mandatory")
     @Email(message = "Email should be valid")
     private String email;
@@ -17,13 +25,8 @@ public class UserDTO {
     @NotBlank(message = "Password is mandatory")
     private String password;
 
-    @NotBlank(message = "First name is mandatory")
-    private String firstName;
+    
 
-    @NotBlank(message = "Last name is mandatory")
-    private String lastName;
-
-    // Exclude these fields from deserialization
     @JsonProperty(access = JsonProperty.Access.READ_ONLY)
     private Long id;
 
@@ -43,7 +46,6 @@ public class UserDTO {
         this.accountUpdated = user.getAccountUpdated();
     }
 
-    // Empty constructor for deserialization (e.g., for incoming requests)
     public UserDTO() {}
 
     public Long getId() {
@@ -94,7 +96,6 @@ public class UserDTO {
         this.accountUpdated = accountUpdated;
     }
 
-    // Password should be hidden in responses
     public String getPassword() {
         return password;
     }
