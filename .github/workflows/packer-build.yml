@@ -1,0 +1,63 @@
+name: Build AMI
+run-name: "Build AMI from commit ${{ github.sha }}"
+on:
+  push:
+    branches:
+      - main
+
+env:
+  AWS_REGION: us-east-1
+
+jobs:
+  build-ami:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@v4
+
+      - name: Set up JDK 17
+        uses: actions/setup-java@v4
+        with:
+          java-version: '17'
+          distribution: 'temurin'
+          cache: 'maven'
+
+      - name: Build Application
+        run: |
+          mvn clean package -DskipTests
+          cp target/*.jar app.jar
+
+
+      - name: Configure AWS Credentials
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          aws-region: ${{ env.AWS_REGION }}
+
+      - name: Install Packer
+        uses: hashicorp/setup-packer@v2
+        with:
+          version: '1.8.7'
+
+      - name: Build AMI
+        env:
+          DEV_ACCOUNT_ID: ${{ secrets.DEV_ACCOUNT_ID }}
+          DEMO_ACCOUNT_ID: ${{ secrets.DEMO_ACCOUNT_ID }}
+          DB_USER: ${{ secrets.DB_USER }}
+          DB_PASSWORD: ${{ secrets.DB_PASSWORD }}
+        run: |
+          packer init .
+          packer validate \
+            -var "dev_account_id=${DEV_ACCOUNT_ID}" \
+            -var "demo_account_id=${DEMO_ACCOUNT_ID}" \
+            -var "db_user=${DB_USER}" \
+            -var "db_password=${DB_PASSWORD}" \
+            packer-webapp.pkr.hcl
+          packer build \
+            -var "instance_type=t3.medium" \
+            -var "dev_account_id=${DEV_ACCOUNT_ID}" \
+            -var "demo_account_id=${DEMO_ACCOUNT_ID}" \
+            -var "db_user=${DB_USER}" \
+            -var "db_password=${DB_PASSWORD}" \
+            packer-webapp.pkr.hcl

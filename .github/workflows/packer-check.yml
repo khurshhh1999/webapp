@@ -1,0 +1,32 @@
+name: Packer Validation
+run-name: "PR #${{ github.event.number }} - Validate Packer Configuration"
+
+on:
+  pull_request:
+    branches:
+      - main
+  workflow_dispatch:
+
+jobs:
+  validate:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@v4
+
+      - name: Install Packer
+        uses: hashicorp/setup-packer@v2
+        with:
+          version: '1.8.7'
+
+      - name: Check Packer Format
+        run: |
+          packer fmt -check packer-webapp.pkr.hcl
+
+      - name: Initialize Packer
+        run: |
+          packer init .
+
+      - name: Validate Packer Template
+        run: |
+          packer validate -syntax-only packer-webapp.pkr.hcl

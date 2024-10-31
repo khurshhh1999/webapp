@@ -1,0 +1,17 @@
+[Unit]
+Description=Spring Boot WebApp Service
+After=network.target
+
+[Service]
+Type=simple
+User=csye6225
+ExecStart=/usr/bin/java -jar /opt/myapp/app.jar
+Restart=on-failure
+Environment=DB_USER=${DB_USER}
+Environment=DB_PASSWORD=${DB_PASSWORD}
+Environment=DB_HOST=localhost
+Environment=DB_PORT=5432
+Environment=DB_NAME=csye6225
+
+[Install]
+WantedBy=multi-user.target
