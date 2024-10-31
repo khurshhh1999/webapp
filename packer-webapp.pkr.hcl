@@ -72,9 +72,9 @@ source "amazon-ebs" "ubuntu" {
 }
 
 build {
-  sources = ["source.amazon-ebs.ubuntu"]
+  sources =   ["source.amazon-ebs.ubuntu"]
 
-  provisioner "shell" {
+  provisioner   "shell" {
     inline = [
       "export DEBIAN_FRONTEND=noninteractive",
       "sudo apt-get update --allow-unauthenticated",
