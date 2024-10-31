@@ -44,8 +44,8 @@ variable "db_password" {
 }
 
 source "amazon-ebs" "ubuntu" {
-  profile                     = var.aws_profile
-  region                      = var.aws_region
+  profile                     = var.aws_profileee
+  region                      = var.aws_region_
   instance_type               = var.instance_type
   ami_users                   = []
   ssh_username                = "ubuntu"
