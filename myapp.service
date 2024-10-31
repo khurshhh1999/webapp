@@ -9,9 +9,11 @@ ExecStart=/usr/bin/java -jar /opt/myapp/app.jar
 Restart=on-failure
 Environment=DB_USER=${DB_USER}
 Environment=DB_PASSWORD=${DB_PASSWORD}
-Environment=DB_HOST=localhost
-Environment=DB_PORT=5432
-Environment=DB_NAME=csye6225
+Environment=DB_HOST=${DB_HOST}
+Environment=DB_PORT=${DB_PORT}
+Environment=DB_NAME=${DB_NAME}
+Environment=AWS_REGION=${AWS_REGION}
+Environment=AWS_BUCKET_NAME=${AWS_BUCKET_NAME}
 
 [Install]
 WantedBy=multi-user.target

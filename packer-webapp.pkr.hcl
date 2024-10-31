@@ -82,23 +82,18 @@ build {
       "sudo add-apt-repository ppa:openjdk-r/ppa",
       "sudo apt-get update --allow-unauthenticated",
       "sudo apt-get install -y openjdk-17-jdk --allow-unauthenticated",
-      "sudo apt-get install -y postgresql postgresql-contrib",
-      "sudo systemctl enable postgresql",
-      "sudo systemctl start postgresql",
-      "sleep 10"
+
+      # Install CloudWatch agent
+      "sudo apt-get install -y wget unzip",
+      "wget https://s3.amazonaws.com/amazoncloudwatch-agent/debian/amd64/latest/amazon-cloudwatch-agent.deb",
+      "sudo dpkg -i -E ./amazon-cloudwatch-agent.deb",
+      "sudo systemctl enable amazon-cloudwatch-agent"
     ]
   }
 
   provisioner "file" {
-    source      = "db-setup.sh"
-    destination = "/home/ubuntu/db-setup.sh"
-  }
-
-  provisioner "shell" {
-    inline = [
-      "chmod +x /home/ubuntu/db-setup.sh",
-      "sudo /home/ubuntu/db-setup.sh"
-    ]
+    source      = "cloudwatch-config.json"
+    destination = "/tmp/cloudwatch-config.json"
   }
 
   provisioner "file" {
@@ -119,11 +114,14 @@ build {
       "sudo mv /home/ubuntu/app.jar /opt/myapp/app.jar",
       "sudo chown -R csye6225:csye6225 /opt/myapp",
       "sudo mv /home/ubuntu/myapp.service /etc/systemd/system/myapp.service",
+      "sudo mv /tmp/cloudwatch-config.json /opt/aws/amazon-cloudwatch-agent/etc/amazon-cloudwatch-agent.json",
       "sudo chown root:root /etc/systemd/system/myapp.service",
       "sudo chmod 644 /etc/systemd/system/myapp.service",
       "sudo systemctl daemon-reload",
       "sudo systemctl enable myapp.service",
-      "sudo systemctl start myapp.service || true"
+      "sudo systemctl enable amazon-cloudwatch-agent",
+      "sudo systemctl start amazon-cloudwatch-agent || true",
+      "sudo /opt/aws/amazon-cloudwatch-agent/bin/amazon-cloudwatch-agent-ctl -a fetch-config -m ec2 -s -c file:/opt/aws/amazon-cloudwatch-agent/etc/amazon-cloudwatch-agent.json"
     ]
   }
 }

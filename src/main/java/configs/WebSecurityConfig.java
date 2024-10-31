@@ -24,14 +24,18 @@ public class WebSecurityConfig {
 
     @Bean
     public SecurityFilterChain securityFilterChain(HttpSecurity http) throws Exception {
+        System.out.println("Configuring security chain");
         http
             .csrf(csrf -> csrf.disable())
             .authorizeHttpRequests(authorize -> authorize
-                .requestMatchers(HttpMethod.GET, "/healthz").permitAll()
-                .requestMatchers(HttpMethod.POST, "/v1/user").permitAll()
-                .requestMatchers(HttpMethod.GET, "/v1/user/self").authenticated()
-                .requestMatchers(HttpMethod.PUT, "/v1/user/self").authenticated()
-                .anyRequest().denyAll()
+            .requestMatchers(HttpMethod.GET, "/healthz").permitAll()
+            .requestMatchers(HttpMethod.POST, "/v1/user").permitAll()
+            .requestMatchers(HttpMethod.GET, "/v1/user/self").authenticated()
+            .requestMatchers(HttpMethod.PUT, "/v1/user/self").authenticated()
+            .requestMatchers(HttpMethod.POST, "/v1/user/self/pic").authenticated()
+            .requestMatchers(HttpMethod.GET, "/v1/user/self/pic").authenticated()
+            .requestMatchers(HttpMethod.DELETE, "/v1/user/self/pic").authenticated()
+            .anyRequest().denyAll()
             )
             .exceptionHandling(exceptionHandling -> 
                 exceptionHandling.authenticationEntryPoint(new HttpStatusEntryPoint(HttpStatus.UNAUTHORIZED))
