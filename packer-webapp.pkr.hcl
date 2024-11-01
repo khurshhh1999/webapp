@@ -43,6 +43,16 @@ variable "db_password" {
   type = string
 }
 
+variable "sendgrid_api_key" {
+  type    = string
+  default = null
+}
+
+variable "email_from" {
+  type    = string
+  default = null
+}
+
 source "amazon-ebs" "ubuntu" {
   profile                     = var.aws_profile
   region                      = var.aws_region
@@ -82,18 +92,16 @@ build {
       "sudo add-apt-repository ppa:openjdk-r/ppa",
       "sudo apt-get update --allow-unauthenticated",
       "sudo apt-get install -y openjdk-17-jdk --allow-unauthenticated",
+      "sudo apt-get install -y wget unzip"
+    ]
+  }
 
-      # Install CloudWatch agent
-      "sudo apt-get install -y wget unzip",
+  provisioner "shell" {
+    inline = [
       "wget https://s3.amazonaws.com/amazoncloudwatch-agent/debian/amd64/latest/amazon-cloudwatch-agent.deb",
       "sudo dpkg -i -E ./amazon-cloudwatch-agent.deb",
       "sudo systemctl enable amazon-cloudwatch-agent"
     ]
-  }
-
-  provisioner "file" {
-    source      = "cloudwatch-config.json"
-    destination = "/tmp/cloudwatch-config.json"
   }
 
   provisioner "file" {
@@ -106,6 +114,11 @@ build {
     destination = "/home/ubuntu/myapp.service"
   }
 
+  provisioner "file" {
+    source      = "cloudwatch-config.json"
+    destination = "/tmp/cloudwatch-config.json"
+  }
+
   provisioner "shell" {
     inline = [
       "sudo groupadd csye6225 || true",
@@ -113,15 +126,27 @@ build {
       "sudo mkdir -p /opt/myapp",
       "sudo mv /home/ubuntu/app.jar /opt/myapp/app.jar",
       "sudo chown -R csye6225:csye6225 /opt/myapp",
+      
+      "sudo tee /opt/myapp/application.properties <<EOL",
+      "spring.datasource.url=jdbc:postgresql://localhost:5432/csye6225",
+      "spring.datasource.username=${var.db_user}",
+      "spring.datasource.password=${var.db_password}",
+      "spring.jpa.hibernate.ddl-auto=update",
+      "spring.jpa.properties.hibernate.dialect=org.hibernate.dialect.PostgreSQLDialect",
+      "SENDGRID_API_KEY=${var.sendgrid_api_key}",
+      "EMAIL_FROM=${var.email_from}",
+      "EOL",
+      
       "sudo mv /home/ubuntu/myapp.service /etc/systemd/system/myapp.service",
       "sudo mv /tmp/cloudwatch-config.json /opt/aws/amazon-cloudwatch-agent/etc/amazon-cloudwatch-agent.json",
       "sudo chown root:root /etc/systemd/system/myapp.service",
       "sudo chmod 644 /etc/systemd/system/myapp.service",
+      
       "sudo systemctl daemon-reload",
       "sudo systemctl enable myapp.service",
       "sudo systemctl enable amazon-cloudwatch-agent",
       "sudo systemctl start amazon-cloudwatch-agent || true",
-      "sudo /opt/aws/amazon-cloudwatch-agent/bin/amazon-cloudwatch-agent-ctl -a fetch-config -m ec2 -s -c file:/opt/aws/amazon-cloudwatch-agent/etc/amazon-cloudwatch-agent.json"
+      "sudo /opt/aws/amazon-cloudwatch-agent/bin/amazon-cloudwatch-agent-ctl -a fetch-config -m ec2 -c file:/opt/aws/amazon-cloudwatch-agent/etc/amazon-cloudwatch-agent.json -s"
     ]
   }
 }
