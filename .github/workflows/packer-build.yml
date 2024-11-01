@@ -1,16 +1,23 @@
 name: Build AMI
 run-name: "Build AMI from commit ${{ github.sha }}"
+
 on:
   push:
     branches:
       - main
+  workflow_dispatch:
 
 env:
   AWS_REGION: us-east-1
+  PACKER_LOG: 1  
 
 jobs:
   build-ami:
     runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      id-token: write
+
     steps:
       - name: Checkout Code
         uses: actions/checkout@v4
@@ -26,7 +33,7 @@ jobs:
         run: |
           mvn clean package -DskipTests
           cp target/*.jar app.jar
-
+          ls -l app.jar  # Verify jar exists
 
       - name: Configure AWS Credentials
         uses: aws-actions/configure-aws-credentials@v4
@@ -40,24 +47,49 @@ jobs:
         with:
           version: '1.8.7'
 
+      - name: Verify Required Files
+        run: |
+          ls -la
+          test -f packer-webapp.pkr.hcl || (echo "Packer file not found" && exit 1)
+          test -f app.jar || (echo "Application jar not found" && exit 1)
+          test -f myapp.service || (echo "Service file not found" && exit 1)
+          test -f cloudwatch-config.json || (echo "CloudWatch config not found" && exit 1)
+
       - name: Build AMI
         env:
           DEV_ACCOUNT_ID: ${{ secrets.DEV_ACCOUNT_ID }}
           DEMO_ACCOUNT_ID: ${{ secrets.DEMO_ACCOUNT_ID }}
           DB_USER: ${{ secrets.DB_USER }}
           DB_PASSWORD: ${{ secrets.DB_PASSWORD }}
+          SENDGRID_API_KEY: ${{ secrets.SENDGRID_API_KEY }}
+          EMAIL_FROM: ${{ secrets.EMAIL_FROM }}
         run: |
+          echo "Running packer init..."
           packer init .
+
+          echo "Running packer validate..."
           packer validate \
             -var "dev_account_id=${DEV_ACCOUNT_ID}" \
             -var "demo_account_id=${DEMO_ACCOUNT_ID}" \
             -var "db_user=${DB_USER}" \
             -var "db_password=${DB_PASSWORD}" \
+            -var "sendgrid_api_key=${SENDGRID_API_KEY}" \
+            -var "email_from=${EMAIL_FROM}" \
             packer-webapp.pkr.hcl
+
+          echo "Running packer build..."
           packer build \
             -var "instance_type=t3.medium" \
             -var "dev_account_id=${DEV_ACCOUNT_ID}" \
             -var "demo_account_id=${DEMO_ACCOUNT_ID}" \
             -var "db_user=${DB_USER}" \
             -var "db_password=${DB_PASSWORD}" \
+            -var "sendgrid_api_key=${SENDGRID_API_KEY}" \
+            -var "email_from=${EMAIL_FROM}" \
             packer-webapp.pkr.hcl
+        continue-on-error: false
+
+      - name: Cleanup
+        if: always()
+        run: |
+          rm -f app.jar
