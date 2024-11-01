@@ -3,3 +3,8 @@
 To run in VM environment:
 
 To run in local:
+
+To run with AWS:
+
+
+to Run with:
