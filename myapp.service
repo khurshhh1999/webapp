@@ -5,15 +5,12 @@ After=network.target
 [Service]
 Type=simple
 User=csye6225
+Group=csye6225
+WorkingDirectory=/opt/myapp
 ExecStart=/usr/bin/java -jar /opt/myapp/app.jar
 Restart=on-failure
-Environment=DB_USER=${DB_USER}
-Environment=DB_PASSWORD=${DB_PASSWORD}
-Environment=DB_HOST=${DB_HOST}
-Environment=DB_PORT=${DB_PORT}
-Environment=DB_NAME=${DB_NAME}
-Environment=AWS_REGION=${AWS_REGION}
-Environment=AWS_BUCKET_NAME=${AWS_BUCKET_NAME}
+StandardOutput=append:/var/log/myapp/application.log
+StandardError=append:/var/log/myapp/application.log
 
 [Install]
 WantedBy=multi-user.target

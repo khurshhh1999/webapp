@@ -57,11 +57,12 @@ source "amazon-ebs" "ubuntu" {
   profile                     = var.aws_profile
   region                      = var.aws_region
   instance_type               = var.instance_type
-  ami_users                   = [var.dev_account_id, var.demo_account_id]
+  ami_users                   = []
   ssh_username                = "ubuntu"
   ami_name                    = var.ami_name
   associate_public_ip_address = true
-  ssh_timeout                 = "5m"
+  ssh_timeout                 = "10m"
+  ssh_handshake_attempts      = "20"
 
   launch_block_device_mappings {
     device_name           = "/dev/sda1"
@@ -107,6 +108,7 @@ build {
   provisioner "file" {
     source      = "app.jar"
     destination = "/home/ubuntu/app.jar"
+    max_retries = 5
   }
 
   provisioner "file" {
@@ -123,10 +125,17 @@ build {
     inline = [
       "sudo groupadd csye6225 || true",
       "sudo useradd -M -s /usr/sbin/nologin -g csye6225 csye6225 || true",
+
+
       "sudo mkdir -p /opt/myapp",
+      "sudo mkdir -p /var/log/myapp",
       "sudo mv /home/ubuntu/app.jar /opt/myapp/app.jar",
       "sudo chown -R csye6225:csye6225 /opt/myapp",
-      
+      "sudo chown -R csye6225:csye6225 /var/log/myapp",
+      "sudo chmod 755 /opt/myapp",
+      "sudo chmod 755 /var/log/myapp",
+
+
       "sudo tee /opt/myapp/application.properties <<EOL",
       "spring.datasource.url=jdbc:postgresql://localhost:5432/csye6225",
       "spring.datasource.username=${var.db_user}",
@@ -135,13 +144,16 @@ build {
       "spring.jpa.properties.hibernate.dialect=org.hibernate.dialect.PostgreSQLDialect",
       "SENDGRID_API_KEY=${var.sendgrid_api_key}",
       "EMAIL_FROM=${var.email_from}",
+      "logging.file.path=/var/log/myapp",
+      "logging.file.name=/var/log/myapp/application.log",
       "EOL",
-      
+
       "sudo mv /home/ubuntu/myapp.service /etc/systemd/system/myapp.service",
       "sudo mv /tmp/cloudwatch-config.json /opt/aws/amazon-cloudwatch-agent/etc/amazon-cloudwatch-agent.json",
       "sudo chown root:root /etc/systemd/system/myapp.service",
       "sudo chmod 644 /etc/systemd/system/myapp.service",
-      
+      "sudo chmod 644 /opt/myapp/application.properties",
+
       "sudo systemctl daemon-reload",
       "sudo systemctl enable myapp.service",
       "sudo systemctl enable amazon-cloudwatch-agent",
