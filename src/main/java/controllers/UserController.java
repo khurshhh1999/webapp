@@ -11,6 +11,7 @@ import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.PutMapping;
 import org.springframework.web.bind.annotation.RequestBody;
+import org.springframework.web.bind.annotation.RequestHeader;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
@@ -30,7 +31,7 @@ public class UserController {
     private static final Set<String> ALLOWED_UPDATE_FIELDS = Set.of("firstName", "lastName", "password");
 
     @PostMapping
-    public ResponseEntity<?> createUser(@Valid @RequestBody UserDTO userDTO) {
+    public ResponseEntity<?> createUser(@Valid @RequestBody UserDTO userDTO, @RequestHeader Map<String, String> headers) {
         System.out.println("Received DTO: " + userDTO);
         System.out.println("firstName: " + userDTO.getFirstName());
         System.out.println("lastName: " + userDTO.getLastName());
