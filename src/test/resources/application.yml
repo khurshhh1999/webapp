@@ -12,6 +12,24 @@ spring:
       hibernate:
         dialect: org.hibernate.dialect.H2Dialect
 
+# Mock AWS configurations for testing
+aws:
+  region: us-east-1
+  access:
+    key:
+      id: test-key
+  secret:
+    access:
+      key: test-secret
+  s3:
+    bucket: test-bucket
+
+# StatsD configuration
+statsd:
+  host: localhost
+  port: 8125
+  prefix: webapp
+
 logging:
   level:
     org.springframework: INFO

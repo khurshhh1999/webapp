@@ -1,19 +1,27 @@
 [Unit]
 Description=Spring Boot WebApp Service
-After=network.target
+After=network.target amazon-cloudwatch-agent.service
 
 [Service]
 Type=simple
 User=csye6225
-ExecStart=/usr/bin/java -jar /opt/myapp/app.jar
-Restart=on-failure
-Environment=DB_USER=${DB_USER}
-Environment=DB_PASSWORD=${DB_PASSWORD}
-Environment=DB_HOST=${DB_HOST}
-Environment=DB_PORT=${DB_PORT}
-Environment=DB_NAME=${DB_NAME}
-Environment=AWS_REGION=${AWS_REGION}
-Environment=AWS_BUCKET_NAME=${AWS_BUCKET_NAME}
+Group=csye6225
+WorkingDirectory=/opt/myapp
+ExecStart=/usr/bin/java \
+    -Dlogging.charset.file=UTF-8 \
+    -Dlogging.charset.console=UTF-8 \
+    -Dlogging.file.path=/var/log/myapp \
+    -Dlogging.file.name=/var/log/myapp/application.log \
+    -Dlogging.level.controllers=DEBUG \
+    -Dlogging.level.services=DEBUG \
+    -jar /opt/myapp/app.jar
+Restart=always
+RestartSec=10
+StandardOutput=append:/var/log/myapp/myapp.log
+StandardError=append:/var/log/myapp/myapp.log
+SuccessExitStatus=143
+TimeoutStopSec=10
+TimeoutStartSec=60
 
 [Install]
 WantedBy=multi-user.target

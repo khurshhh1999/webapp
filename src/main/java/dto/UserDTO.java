@@ -11,11 +11,11 @@ import models.User;
 public class UserDTO {
 
     @NotBlank(message = "First name is mandatory")
-    @JsonProperty("firstName")
+    @JsonProperty("first_name")
     private String firstName;
 
     @NotBlank(message = "Last name is mandatory")
-    @JsonProperty("lastName")
+    @JsonProperty("last_name")
     private String lastName;
 
     @NotBlank(message = "Email is mandatory")
@@ -36,7 +36,6 @@ public class UserDTO {
     @JsonProperty(access = JsonProperty.Access.READ_ONLY)
     private LocalDateTime accountUpdated;
 
-    // Constructor that maps User model to DTO
     public UserDTO(User user) {
         this.id = user.getId();
         this.email = user.getEmail();

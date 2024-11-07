@@ -29,10 +29,20 @@ spring:
 
 logging:
   level:
-    org.springframework: DEBUG
-    org.springframework.web: DEBUG
-    org.springframework.http.converter.json: DEBUG
-    com.example: DEBUG
+    root: INFO
+    org.springframework: INFO
+    org.hibernate: INFO
+    controllers: DEBUG
+    services: DEBUG 
+  file:
+    path: /var/log/myapp
+    name: /var/log/myapp/application.log
+  pattern:
+    file: "%d{yyyy-MM-dd HH:mm:ss.SSS} [%thread] %-5level %logger{36} - %msg%n"
+    console: "%d{yyyy-MM-dd HH:mm:ss.SSS} [%thread] %-5level %logger{36} - %msg%n"
+  charset:
+    file: UTF-8
+    console: UTF-8
 
 aws:
   region: ${AWS_REGION}
