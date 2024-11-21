@@ -1,28 +1,50 @@
 package models;
 
 import java.time.LocalDateTime;
+import java.util.UUID;
 
+import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
+import jakarta.persistence.GeneratedValue;
 import jakarta.persistence.Id;
 import jakarta.persistence.JoinColumn;
-import jakarta.persistence.ManyToOne;
+import jakarta.persistence.OneToOne;
 import jakarta.persistence.Table;
+
+import org.hibernate.annotations.GenericGenerator;
+import org.hibernate.annotations.UuidGenerator;
 
 @Entity
 @Table(name = "profile_pictures")
 public class ProfilePicture {
     @Id
+    @GeneratedValue(generator = "uuid2")
+    @GenericGenerator(name = "uuid2", strategy = "uuid2")
+    @Column(columnDefinition = "VARCHAR(36)")
     private String id;
     
-    @ManyToOne
-    @JoinColumn(name = "user_id")
+    @OneToOne  // Changed to OneToOne since a user should have only one profile picture
+    @JoinColumn(name = "user_id", unique = true)  // Added unique constraint
     private User user;
     
+    @Column(nullable = false)
     private String fileName;
+    
+    @Column(nullable = false)
     private String fileType;
+    
+    @Column(nullable = false)
     private String url;
+    
+    @Column(name = "upload_date", nullable = false)
     private LocalDateTime uploadDate;
 
+    // Default constructor
+    public ProfilePicture() {
+        this.uploadDate = LocalDateTime.now();
+    }
+
+    // Getters and Setters
     public String getId() {
         return id;
     }

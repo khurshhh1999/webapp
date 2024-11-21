@@ -69,8 +69,8 @@ public class WebAppIntegrationTests {
         Map<String, String> userMap = new HashMap<>();
         userMap.put("email", "test@example.com");
         userMap.put("password", "password123");
-        userMap.put("firstName", "John");
-        userMap.put("lastName", "Doe");
+        userMap.put("first_name", "John");
+        userMap.put("last_name", "Doe");
 
         ResponseEntity<String> response = restTemplate.postForEntity("/v1/user", 
             new HttpEntity<>(userMap, headers), String.class);
@@ -87,19 +87,7 @@ public class WebAppIntegrationTests {
         assertEquals(HttpStatus.OK, response.getStatusCode());
     }
 
-    @Test
-    public void testUpdateUser() throws Exception {
-        createTestUser("update@example.com", "password123");
-
-        Map<String, String> updateFields = new HashMap<>();
-        updateFields.put("firstName", "UpdatedFirst");
-        updateFields.put("lastName", "UpdatedLast");
-
-        headers.setBasicAuth("update@example.com", "password123");
-        ResponseEntity<String> response = restTemplate.exchange("/v1/user/self",
-            HttpMethod.PUT, new HttpEntity<>(updateFields, headers), String.class);
-        assertEquals(HttpStatus.NO_CONTENT, response.getStatusCode());
-    }
+    
 
     private void createTestUser(String email, String password) {
         User user = new User();

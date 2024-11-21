@@ -1,6 +1,7 @@
 spring:
   servlet:
     multipart:
+      enabled: true
       max-file-size: 10MB
       max-request-size: 10MB
   jackson:
@@ -10,10 +11,9 @@ spring:
     deserialization:
       FAIL_ON_UNKNOWN_PROPERTIES: false
   datasource:
-    url: jdbc:postgresql://${DB_HOST}:${DB_PORT}/${DB_NAME}
+    url: jdbc:postgresql://${DB_HOST}/${DB_NAME}
     username: ${DB_USER}
     password: ${DB_PASSWORD}
-    driver-class-name: org.postgresql.Driver
   jpa:
     hibernate:
       ddl-auto: update
@@ -27,30 +27,55 @@ spring:
         exposure:
           include: health
 
-logging:
-  level:
-    root: INFO
-    org.springframework: INFO
-    org.hibernate: INFO
-    controllers: DEBUG
-    services: DEBUG 
-  file:
-    path: /var/log/myapp
-    name: /var/log/myapp/application.log
-  pattern:
-    file: "%d{yyyy-MM-dd HH:mm:ss.SSS} [%thread] %-5level %logger{36} - %msg%n"
-    console: "%d{yyyy-MM-dd HH:mm:ss.SSS} [%thread] %-5level %logger{36} - %msg%n"
-  charset:
-    file: UTF-8
-    console: UTF-8
+#logging:
+#  level:
+#    root: DEBUG
+#    org.springframework: DEBUG
+ #   org.hibernate: DEBUG
+ #   controllers: DEBUG
+#    services: DEBUG 
+#  file:
+#    path: /var/log/myapp
+ #   name: /var/log/myapp/application.log
+ # pattern:
+ #   file: "%d{yyyy-MM-dd HH:mm:ss.SSS} [%thread] %-5level %logger{36} - %msg%n"
+ #   console: "%d{yyyy-MM-dd HH:mm:ss.SSS} [%thread] %-5level %logger{36} - %msg%n"
+ # charset:
+ #   file: UTF-8
+ #   console: UTF-8
 
 aws:
   region: ${AWS_REGION}
   s3:
     bucket: ${AWS_BUCKET_NAME}
+  sns:
+    topic:
+      arn: ${AWS_SNS_TOPIC_ARN}
 
 sendgrid:
   api:
     key: ${SENDGRID_API_KEY}
   from:
     email: ${EMAIL_FROM}
+
+metrics:
+  statsd:
+    host: localhost
+    port: 8125
+  prefix: csye6225
+
+
+server:
+  forward-headers-strategy: framework
+  tomcat:
+    accesslog:
+      enabled: true
+      directory: /var/log/myapp
+      prefix: access
+      suffix: .log
+      file-date-format: yyyy-MM-dd
+      pattern: '%d{[dd/MMM/yyyy:HH:mm:ss Z]} %h "%r" %s %b %D'
+      rotate: true
+
+jwt:
+  secret: ${JWT_SECRET}
