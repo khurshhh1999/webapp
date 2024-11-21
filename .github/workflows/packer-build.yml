@@ -2,14 +2,13 @@ name: Build and Deploy AMI
 run-name: "Build and Deploy AMI from commit ${{ github.sha }}"
 
 on:
-  pull_request:
+  push:
     branches:
       - main
-    types: [closed]
+  workflow_dispatch:
 
 jobs:
   build-ami:
-    if: github.event.pull_request.merged == true
     runs-on: ubuntu-latest
     permissions:
       contents: read

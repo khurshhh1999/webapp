@@ -66,7 +66,7 @@ variable "aws_bucket_name" {
 }
 
 variable "aws_sns_topic_arn" {
-  type    = string
+  type        = string
   description = "SNS Topic ARN for user verification"
 }
 
@@ -100,7 +100,7 @@ source "amazon-ebs" "ubuntu" {
   launch_block_device_mappings {
     device_name           = "/dev/sda1"
     volume_size           = 8
-    volume_type          = "gp2"
+    volume_type           = "gp2"
     delete_on_termination = true
   }
   skip_create_ami                       = false
@@ -142,14 +142,14 @@ build {
     ]
   }
   provisioner "shell" {
-  inline = ["mkdir -p /tmp/webapp-source"]
+    inline = ["mkdir -p /tmp/webapp-source"]
   }
 
   provisioner "file" {
     source      = "./"
     destination = "/tmp/webapp-source"
   }
-    provisioner "shell" {
+  provisioner "shell" {
     inline = [
       "echo '=== Setting up Users and Directories ==='",
       "sudo groupadd csye6225 || true",
@@ -181,15 +181,15 @@ build {
     ]
   }
   provisioner "shell" {
-  inline = [
-    "cd /tmp/webapp-source",
-    "mvn -B clean package -DskipTests",
-    "sudo mkdir -p /opt/myapp",
-    "sudo mv target/*.jar /opt/myapp/app.jar",
-    "sudo chown csye6225:csye6225 /opt/myapp/app.jar",
-    "sudo chmod 644 /opt/myapp/app.jar"
-  ]
-}
+    inline = [
+      "cd /tmp/webapp-source",
+      "mvn -B clean package -DskipTests",
+      "sudo mkdir -p /opt/myapp",
+      "sudo mv target/*.jar /opt/myapp/app.jar",
+      "sudo chown csye6225:csye6225 /opt/myapp/app.jar",
+      "sudo chmod 644 /opt/myapp/app.jar"
+    ]
+  }
 
 
 
@@ -258,7 +258,7 @@ build {
       "sudo sed -i 's|$${SENDGRID_API_KEY}|'\"$SENDGRID_API_KEY\"'|g' /opt/myapp/application.yml",
       "sudo sed -i 's|$${EMAIL_FROM}|'\"$EMAIL_FROM\"'|g' /opt/myapp/application.yml",
       "sudo sed -i 's|$${JWT_SECRET}|'\"$JWT_SECRET\"'|g' /opt/myapp/application.yml",
-      
+
       "echo '=== Setting File Permissions ==='",
       "sudo chown -R csye6225:csye6225 /opt/myapp",
       "sudo chmod 644 /opt/myapp/app.jar",
@@ -277,7 +277,7 @@ build {
       "sudo systemctl enable myapp.service",
       "sudo systemctl enable amazon-cloudwatch-agent",
       "sudo /opt/aws/amazon-cloudwatch-agent/bin/amazon-cloudwatch-agent-ctl -a fetch-config -m ec2 -c file:/opt/aws/amazon-cloudwatch-agent/etc/amazon-cloudwatch-agent.json -s",
-      
+
       "echo '=== Cleanup ==='",
       "sudo rm -rf /tmp/webapp",
       "sudo rm -rf /tmp/webapp-source"
