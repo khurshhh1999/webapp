@@ -41,7 +41,7 @@ public class UserControllerTest {
 
         mockMvc.perform(post("/v1/user")
                 .contentType(MediaType.APPLICATION_JSON)
-                .content("{\"email\":\"test@example.com\",\"password\":\"password123\",\"firstName\":\"Test\",\"lastName\":\"User\"}"))
+                .content("{\"email\":\"test@example.com\",\"password\":\"password123\",\"first_name\":\"Test\",\"last_name\":\"User\"}"))
                 .andExpect(status().isCreated());
     }
 

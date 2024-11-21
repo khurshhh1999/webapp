@@ -35,6 +35,7 @@ public class WebSecurityConfig {
             .requestMatchers(HttpMethod.POST, "/v1/user/self/pic").authenticated()
             .requestMatchers(HttpMethod.GET, "/v1/user/self/pic").authenticated()
             .requestMatchers(HttpMethod.DELETE, "/v1/user/self/pic").authenticated()
+            .requestMatchers(HttpMethod.GET, "/v1/user/verify/**").permitAll()
             .anyRequest().denyAll()
             )
             .exceptionHandling(exceptionHandling -> 
@@ -43,7 +44,7 @@ public class WebSecurityConfig {
             .httpBasic(httpBasic -> {})
             .userDetailsService(userDetailsService);
 
-        http.addFilterBefore(new RequestValidationFilter(), UsernamePasswordAuthenticationFilter.class);
+        //http.addFilterBefore(new RequestValidationFilter(), UsernamePasswordAuthenticationFilter.class);
         http.addFilterBefore(new ApiMethodNotAllowedFilter(), UsernamePasswordAuthenticationFilter.class);
         
         return http.build();

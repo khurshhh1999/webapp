@@ -20,49 +20,56 @@ public class RequestValidationFilter extends OncePerRequestFilter {
 
     @Override
     protected void doFilterInternal(HttpServletRequest request, HttpServletResponse response, FilterChain filterChain)
-            throws ServletException, IOException {
+        throws ServletException, IOException {
 
-        if (request.getContentType() != null && request.getContentType().startsWith("multipart/form-data")) {
-            filterChain.doFilter(request, response);
-            return;
-        }
-        if (request.getQueryString() != null) {
-            response.setStatus(HttpStatus.METHOD_NOT_ALLOWED.value());
-            response.getWriter().write("Query parameters are not allowed");
-            return;
-        }
+    String contentType = request.getContentType();
 
-        if (request.getMethod().equals("POST") || request.getMethod().equals("PUT")) {
-            String requestBody = request.getReader().lines().collect(Collectors.joining());
-            
-            if (!requestBody.isEmpty()) {
-                try {
-                    Map<?, ?> bodyMap = objectMapper.readValue(requestBody, Map.class);
-                    
-                    if (bodyMap.containsKey("dateCreated") || 
-                        bodyMap.containsKey("accountCreated") || 
-                        bodyMap.containsKey("accountUpdated") || 
-                        bodyMap.containsKey("id")) {
-                        
-                        response.setStatus(HttpStatus.METHOD_NOT_ALLOWED.value());
-                        response.getWriter().write("Request contains restricted fields");
-                        return;
-                    }
-                    
-                    CachedBodyHttpServletRequest cachedRequest = new CachedBodyHttpServletRequest(request);
-                    cachedRequest.setCachedBody(requestBody.getBytes());
-                    
-                    filterChain.doFilter(cachedRequest, response);
-                    return;
-                    
-                } catch (IOException e) {
-                    response.setStatus(HttpStatus.BAD_REQUEST.value());
-                    response.getWriter().write("Invalid request body");
+    // Skip filter processing for non-JSON content types
+    if (contentType == null || !contentType.startsWith("application/json")) {
+        filterChain.doFilter(request, response);
+        return;
+    }
+
+    // Block requests with query parameters
+    if (request.getQueryString() != null) {
+        response.setStatus(HttpStatus.METHOD_NOT_ALLOWED.value());
+        response.getWriter().write("Query parameters are not allowed");
+        return;
+    }
+
+    // Process only POST and PUT requests with JSON content
+    if (request.getMethod().equals("POST") || request.getMethod().equals("PUT")) {
+        String requestBody = request.getReader().lines().collect(Collectors.joining());
+
+        if (!requestBody.isEmpty()) {
+            try {
+                Map<?, ?> bodyMap = objectMapper.readValue(requestBody, Map.class);
+
+                if (bodyMap.containsKey("dateCreated") ||
+                    bodyMap.containsKey("accountCreated") ||
+                    bodyMap.containsKey("accountUpdated") ||
+                    bodyMap.containsKey("id")) {
+
+                    response.setStatus(HttpStatus.METHOD_NOT_ALLOWED.value());
+                    response.getWriter().write("Request contains restricted fields");
                     return;
                 }
+
+                // Wrap the request to cache the body
+                CachedBodyHttpServletRequest cachedRequest = new CachedBodyHttpServletRequest(request);
+                cachedRequest.setCachedBody(requestBody.getBytes());
+
+                filterChain.doFilter(cachedRequest, response);
+                return;
+
+            } catch (IOException e) {
+                response.setStatus(HttpStatus.BAD_REQUEST.value());
+                response.getWriter().write("Invalid request body");
+                return;
             }
         }
-        
-        filterChain.doFilter(request, response);
     }
-}
+
+    // Continue the filter chain for other requests
+    filterChain.doFilter(request, response);
+}}

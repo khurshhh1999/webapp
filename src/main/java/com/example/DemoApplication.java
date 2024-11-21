@@ -30,7 +30,6 @@ public class DemoApplication {
         System.out.println("DEBUG: Starting DemoApplication");
         SpringApplication.run(DemoApplication.class, args);
     }
-    
     @PostConstruct
     public void testS3Connectivity() {
         try {
