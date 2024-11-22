@@ -54,6 +54,7 @@ jobs:
           DB_HOST: ${{ secrets.DB_HOST }}
           JWT_SECRET: ${{ secrets.JWT_SECRET }}
           AWS_BUCKET_NAME: ${{ secrets.AWS_BUCKET_NAME }}
+          PACKER_LOG: 1
         run: |
           echo "Running packer init..."
           packer init packer-webapp.pkr.hcl
@@ -74,22 +75,31 @@ jobs:
             packer-webapp.pkr.hcl
 
           echo "Running packer build..."
+          echo "Current directory contents:"
+          ls -la
 
-          AMI_OUTPUT=$(packer build \
-          -var "dev_account_id=${DEV_ACCOUNT_ID}" \
-          -var "demo_account_id=${DEMO_ACCOUNT_ID}" \
-          -var "db_user=${DB_USER}" \
-          -var "db_password=${DB_PASSWORD}" \
-          -var "sendgrid_api_key=${SENDGRID_API_KEY}" \
-          -var "email_from=${EMAIL_FROM}" \
-          -var "aws_sns_topic_arn=${AWS_SNS_TOPIC_ARN}" \
-          -var "db_name=${DB_NAME}" \
-          -var "db_host=${DB_HOST}" \
-          -var "jwt_secret=${JWT_SECRET}" \
-          -var "aws_bucket_name=${AWS_BUCKET_NAME}" \
-          packer-webapp.pkr.hcl)
+          AMI_OUTPUT=$(PACKER_LOG=1 packer build -debug \
+            -var "dev_account_id=${DEV_ACCOUNT_ID}" \
+            -var "demo_account_id=${DEMO_ACCOUNT_ID}" \
+            -var "db_user=${DB_USER}" \
+            -var "db_password=${DB_PASSWORD}" \
+            -var "sendgrid_api_key=${SENDGRID_API_KEY}" \
+            -var "email_from=${EMAIL_FROM}" \
+            -var "aws_sns_topic_arn=${AWS_SNS_TOPIC_ARN}" \
+            -var "db_name=${DB_NAME}" \
+            -var "db_host=${DB_HOST}" \
+            -var "jwt_secret=${JWT_SECRET}" \
+            -var "aws_bucket_name=${AWS_BUCKET_NAME}" \
+            packer-webapp.pkr.hcl)
 
+          echo "Packer Build Output:"
           echo "$AMI_OUTPUT"
+          
+          if [ $? -ne 0 ]; then
+            echo "Packer build failed"
+            exit 1
+          fi
+
           ami_id=$(echo "$AMI_OUTPUT" | grep -oP '(?<=us-east-1: )ami-[a-zA-Z0-9]+')
           
           if [ -z "$ami_id" ]; then
@@ -157,7 +167,7 @@ jobs:
             echo "Failed to start instance refresh."
             exit 1
           fi
-            
+          
           while true; do
             STATUS=$(aws autoscaling describe-instance-refreshes \
               --auto-scaling-group-name csye6225-asg \
