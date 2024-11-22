@@ -78,7 +78,7 @@ jobs:
           echo "Current directory contents:"
           ls -la
 
-          AMI_OUTPUT=$(PACKER_LOG=1 packer build -debug \
+          AMI_OUTPUT=$(PACKER_LOG=1 packer build \
             -var "dev_account_id=${DEV_ACCOUNT_ID}" \
             -var "demo_account_id=${DEMO_ACCOUNT_ID}" \
             -var "db_user=${DB_USER}" \
