@@ -2,8 +2,7 @@ name: CICD
 run-name: "Build and Deploy AMI from commit ${{ github.sha }}"
 
 on:
-  pull_request:
-    types: [closed]
+  push:
     branches:
       - main
   workflow_dispatch:
