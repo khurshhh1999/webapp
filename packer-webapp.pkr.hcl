@@ -63,6 +63,7 @@ variable "email_from" {
 
 variable "aws_bucket_name" {
   type = string
+  default= "your_bucket_name"
 }
 
 variable "aws_sns_topic_arn" {
@@ -233,7 +234,6 @@ build {
       "AWS_SNS_TOPIC_ARN=${var.aws_sns_topic_arn}",
       "SENDGRID_API_KEY=${var.sendgrid_api_key}",
       "EMAIL_FROM=${var.email_from}",
-      "AWS_BUCKET_NAME=${var.aws_bucket_name}",
       "JWT_SECRET=${var.jwt_secret}"
     ]
     inline = [

@@ -2,8 +2,7 @@ name: CICD
 run-name: "Build and Deploy AMI from commit ${{ github.sha }}"
 
 on:
-  pull_request:
-    types: [closed]
+  push:
     branches:
       - main
   workflow_dispatch:
@@ -52,6 +51,8 @@ jobs:
           AWS_SNS_TOPIC_ARN: ${{ secrets.AWS_SNS_TOPIC_ARN }}
           DB_NAME: ${{ secrets.DB_NAME }}
           DB_HOST: ${{ secrets.DB_HOST }}
+          JWT_SECRET: ${{ secrets.JWT_SECRET }}
+          AWS_BUCKET_NAME: ${{ secrets.AWS_BUCKET_NAME }}
         run: |
           echo "Running packer init..."
           packer init packer-webapp.pkr.hcl
@@ -67,20 +68,25 @@ jobs:
             -var "aws_sns_topic_arn=${AWS_SNS_TOPIC_ARN}" \
             -var "db_name=${DB_NAME}" \
             -var "db_host=${DB_HOST}" \
+            -var "jwt_secret=${JWT_SECRET}" \
+            -var "aws_bucket_name=${AWS_BUCKET_NAME}" \
             packer-webapp.pkr.hcl
 
           echo "Running packer build..."
+
           AMI_OUTPUT=$(packer build \
-            -var "dev_account_id=${DEV_ACCOUNT_ID}" \
-            -var "demo_account_id=${DEMO_ACCOUNT_ID}" \
-            -var "db_user=${DB_USER}" \
-            -var "db_password=${DB_PASSWORD}" \
-            -var "sendgrid_api_key=${SENDGRID_API_KEY}" \
-            -var "email_from=${EMAIL_FROM}" \
-            -var "aws_sns_topic_arn=${AWS_SNS_TOPIC_ARN}" \
-            -var "db_name=${DB_NAME}" \
-            -var "db_host=${DB_HOST}" \
-            packer-webapp.pkr.hcl)
+          -var "dev_account_id=${DEV_ACCOUNT_ID}" \
+          -var "demo_account_id=${DEMO_ACCOUNT_ID}" \
+          -var "db_user=${DB_USER}" \
+          -var "db_password=${DB_PASSWORD}" \
+          -var "sendgrid_api_key=${SENDGRID_API_KEY}" \
+          -var "email_from=${EMAIL_FROM}" \
+          -var "aws_sns_topic_arn=${AWS_SNS_TOPIC_ARN}" \
+          -var "db_name=${DB_NAME}" \
+          -var "db_host=${DB_HOST}" \
+          -var "jwt_secret=${JWT_SECRET}" \
+          -var "aws_bucket_name=${AWS_BUCKET_NAME}" \
+          packer-webapp.pkr.hcl)
 
           echo "$AMI_OUTPUT"
           ami_id=$(echo "$AMI_OUTPUT" | grep -oP '(?<=us-east-1: )ami-[a-zA-Z0-9]+')
