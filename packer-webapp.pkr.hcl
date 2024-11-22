@@ -181,16 +181,10 @@ build {
       "sudo chown ubuntu:ubuntu /tmp/webapp"
     ]
   }
-  provisioner "shell" {
-    inline = [
-      "cd /tmp/webapp-source",
-      "mvn -B clean package -DskipTests",
-      "sudo mkdir -p /opt/myapp",
-      "sudo mv target/*.jar /opt/myapp/app.jar",
-      "sudo chown csye6225:csye6225 /opt/myapp/app.jar",
-      "sudo chmod 644 /opt/myapp/app.jar"
-    ]
-  }
+  provisioner "file" {
+  source      = "archive/webapp-0.0.1-SNAPSHOT.jar"
+  destination = "/tmp/webapp/app.jar"
+}
 
 
 
@@ -238,6 +232,10 @@ build {
     ]
     inline = [
       "echo '=== Moving Application Files ==='",
+      "sudo mkdir -p /opt/myapp",
+      "sudo mv /tmp/webapp/app.jar /opt/myapp/",
+      "sudo chown csye6225:csye6225 /opt/myapp/app.jar",
+      "sudo chmod 644 /opt/myapp/app.jar",
       "sudo mv /tmp/webapp/application.yml /opt/myapp/",
       "sudo mv /tmp/webapp/logback-spring.xml /opt/myapp/",
       "sudo mv /tmp/webapp/myapp.service /etc/systemd/system/",
