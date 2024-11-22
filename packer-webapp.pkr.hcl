@@ -88,7 +88,7 @@ source "amazon-ebs" "ubuntu" {
   profile                     = var.aws_profile
   region                      = var.aws_region
   instance_type               = var.instance_type
-  ami_users                   = []
+  ami_users                   = [var.demo_account_id]
   ssh_username                = "ubuntu"
   ami_name                    = var.ami_name
   associate_public_ip_address = true
