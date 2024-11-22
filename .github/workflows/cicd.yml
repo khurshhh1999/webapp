@@ -1,0 +1,213 @@
+name: CICD
+run-name: "Build and Deploy AMI from commit ${{ github.sha }}"
+
+on:
+  push:
+    branches:
+      - main
+  workflow_dispatch:
+
+jobs:
+  build_ami:
+    name: Build AMI with Packer and Extract AMI ID
+    runs-on: ubuntu-latest
+    outputs:
+      ami_id: ${{ steps.build_image.outputs.ami_id }}
+
+    steps:
+      # Step 1: Check out the repository code
+      - name: Checkout Code
+        uses: actions/checkout@v2
+
+      # Step 2: Configure AWS Credentials (Dev Account)
+      - name: Configure AWS Credentials
+        uses: aws-actions/configure-aws-credentials@v1
+        with:
+          aws-access-key-id: ${{ secrets.DEV_AWS_ACCESS_KEY_ID }}
+          aws-secret-access-key: ${{ secrets.DEV_AWS_SECRET_ACCESS_KEY }}
+          aws-region: ${{ secrets.AWS_REGION }}
+
+      # Step 3: Install Packer
+      - name: Install Packer
+        uses: hashicorp/setup-packer@v2
+        with:
+          version: '1.8.7'
+
+      # Step 4: Create Archive Folder and Move JAR
+      - name: Create Archive Folder and Move JAR
+        run: |
+          mkdir -p archive
+          cp target/webapp-0.0.1-SNAPSHOT.jar archive/
+          ls -la archive/
+
+      # Step 5: Verify Required Files
+      - name: Verify Required Files
+        run: |
+          ls -la
+          test -f packer-webapp.pkr.hcl || (echo "Packer file not found" && exit 1)
+          test -f aws-packer.hcl
+          test -f archive/webapp-0.0.1-SNAPSHOT.jar || (echo "Archived JAR not found" && exit 1)
+          test -f myapp.service || (echo "Service file not found" && exit 1)
+          test -f cloudwatch-config.json || (echo "CloudWatch config not found" && exit 1)
+
+      # Step 6: Build AMI with Packer and Extract AMI ID
+      - name: Build AMI with Packer and Extract AMI ID
+        id: build_image
+        env:
+          DEV_ACCOUNT_ID: ${{ secrets.DEV_ACCOUNT_ID }}
+          DEMO_ACCOUNT_ID: ${{ secrets.DEMO_ACCOUNT_ID }}
+          DB_USER: ${{ secrets.DB_USER }}
+          DB_PASSWORD: ${{ secrets.DB_PASSWORD }}
+          SENDGRID_API_KEY: ${{ secrets.SENDGRID_API_KEY }}
+          EMAIL_FROM: ${{ secrets.EMAIL_FROM }}
+          AWS_SNS_TOPIC_ARN: ${{ secrets.AWS_SNS_TOPIC_ARN }}
+          DB_NAME: ${{ secrets.DB_NAME }}
+          AWS_BUCKET_NAME: ${{ secrets.AWS_BUCKET_NAME }}
+          DB_HOST: ${{ secrets.DB_HOST }}
+        run: |
+          echo "Running packer init..."
+          packer init packer-webapp.pkr.hcl
+
+          echo "Running packer validate..."
+          packer validate \
+            -var "artifact_path=archive/webapp-0.0.1-SNAPSHOT.jar" \
+            -var "dev_account_id=${DEV_ACCOUNT_ID}" \
+            -var "demo_account_id=${DEMO_ACCOUNT_ID}" \
+            -var "db_user=${DB_USER}" \
+            -var "db_password=${DB_PASSWORD}" \
+            -var "sendgrid_api_key=${SENDGRID_API_KEY}" \
+            -var "email_from=${EMAIL_FROM}" \
+            -var "aws_sns_topic_arn=${AWS_SNS_TOPIC_ARN}" \
+            -var "db_name=${DB_NAME}" \
+            -var "aws_bucket_name=${AWS_BUCKET_NAME}" \
+            -var "db_host=${DB_HOST}" \
+            packer-webapp.pkr.hcl
+
+          echo "Running packer build..."
+          AMI_OUTPUT=$(packer build \
+            -var "artifact_path=archive/webapp-0.0.1-SNAPSHOT.jar" \
+            -var "dev_account_id=${DEV_ACCOUNT_ID}" \
+            -var "demo_account_id=${DEMO_ACCOUNT_ID}" \
+            -var "db_user=${DB_USER}" \
+            -var "db_password=${DB_PASSWORD}" \
+            -var "sendgrid_api_key=${SENDGRID_API_KEY}" \
+            -var "email_from=${EMAIL_FROM}" \
+            -var "aws_sns_topic_arn=${AWS_SNS_TOPIC_ARN}" \
+            -var "db_name=${DB_NAME}" \
+            -var "aws_bucket_name=${AWS_BUCKET_NAME}" \
+            -var "db_host=${DB_HOST}" \
+            packer-webapp.pkr.hcl)
+
+          # Log the full output for debugging
+          echo "$AMI_OUTPUT"
+
+          # Extract the AMI ID from the 'Artifacts of successful builds' section
+          ami_id=$(echo "$AMI_OUTPUT" | grep -oP '(?<=us-east-1: )ami-[a-zA-Z0-9]+')
+
+          # Validate that the AMI ID was extracted
+          if [ -z "$ami_id" ]; then
+            echo "Failed to extract AMI ID from the Packer build output!"
+            exit 1
+          fi
+
+          # Set the AMI ID as an output of this step
+          echo "ami_id=${ami_id}" >> $GITHUB_OUTPUT
+
+          # Log the extracted AMI ID for debugging
+          echo "Extracted AMI ID: $ami_id"
+
+  deploy_to_autoscaling:
+    name: Deploy Application to Auto-Scaling Group
+    runs-on: ubuntu-latest
+    needs: build_ami
+
+    steps:
+      # Step 1: Check out the repository code
+      - name: Checkout Code
+        uses: actions/checkout@v2
+
+      # Step 2: Configure AWS Credentials (Demo Account)
+      - name: Configure AWS Credentials
+        uses: aws-actions/configure-aws-credentials@v1
+        with:
+          aws-access-key-id: ${{ secrets.DEMO_AWS_ACCESS_KEY_ID }}
+          aws-secret-access-key: ${{ secrets.DEMO_AWS_SECRET_ACCESS_KEY }}
+          aws-region: us-east-1
+
+      # Step 3: Retrieve Launch Template ID from AWS
+      - name: Retrieve Launch Template ID from AWS
+        id: launch_template
+        run: |
+          LAUNCH_TEMPLATE_ID=$(aws ec2 describe-launch-templates \
+            --filters Name=launch-template-name,Values=csye6225_asg \
+            --query 'LaunchTemplates[0].LaunchTemplateId' --output text)
+          if [ -z "$LAUNCH_TEMPLATE_ID" ]; then
+            echo "Failed to retrieve Launch Template ID from AWS."
+            exit 1
+          fi
+          echo "LAUNCH_TEMPLATE_ID=$LAUNCH_TEMPLATE_ID" >> $GITHUB_ENV
+
+      # Step 4: Create New Launch Template Version
+      - name: Create New Launch Template Version
+        run: |
+          NEW_VERSION=$(aws ec2 create-launch-template-version \
+            --launch-template-id ${{ env.LAUNCH_TEMPLATE_ID }} \
+            --source-version '$Latest' \
+            --launch-template-data '{"ImageId":"'"${{ needs.build_ami.outputs.ami_id }}"'"}' \
+            --query 'LaunchTemplateVersion.VersionNumber' \
+            --output text)
+
+          if [ -z "$NEW_VERSION" ]; then
+            echo "Failed to create new launch template version."
+            exit 1
+          fi
+
+          echo "New Launch Template Version: $NEW_VERSION"
+
+          aws ec2 modify-launch-template \
+            --launch-template-id ${{ env.LAUNCH_TEMPLATE_ID }} \
+            --default-version $NEW_VERSION
+
+      # Step 5: Start Instance Refresh
+      - name: Start Instance Refresh
+        id: refresh
+        run: |
+          REFRESH_ID=$(aws autoscaling start-instance-refresh \
+            --auto-scaling-group-name app_asg \
+            --preferences '{"MinHealthyPercentage":90}' \
+            --query 'InstanceRefreshId' \
+            --output text)
+          if [ -z "$REFRESH_ID" ]; then
+            echo "Failed to start instance refresh."
+            exit 1
+          fi
+          echo "REFRESH_ID=$REFRESH_ID" >> $GITHUB_ENV
+
+      # Step 6: Wait for Instance Refresh to Complete
+      - name: Wait for Instance Refresh to Complete
+        run: |
+          while true; do
+            # Fetch the current status of the instance refresh
+            STATUS=$(aws autoscaling describe-instance-refreshes \
+              --auto-scaling-group-name app_asg \
+              --instance-refresh-ids "${{ env.REFRESH_ID }}" \
+              --query 'InstanceRefreshes[0].Status' \
+              --output text)
+
+            echo "Instance Refresh Status: $STATUS"
+
+            # Handle different statuses
+            if [[ "$STATUS" = "Successful" ]]; then
+              echo "Instance refresh completed successfully."
+              break
+            elif [[ "$STATUS" = "Failed" ]]; then
+              echo "Instance refresh failed."
+              exit 1
+            elif [[ "$STATUS" = "Cancelled" ]]; then
+              echo "Instance refresh was cancelled."
+              exit 1
+            else
+              echo "Instance refresh is in progress. Checking again in 30 seconds..."
+              sleep 30
+            fi
+          done
