@@ -157,7 +157,7 @@ jobs:
             echo "Failed to start instance refresh."
             exit 1
           fi
-          
+            
           while true; do
             STATUS=$(aws autoscaling describe-instance-refreshes \
               --auto-scaling-group-name csye6225-asg \
