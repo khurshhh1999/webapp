@@ -2,12 +2,14 @@ name: CICD
 run-name: "Build and Deploy AMI from commit ${{ github.sha }}"
 
 on:
-  push:
+  pull_request:
+    types: [closed]
     branches:
       - main
 
 jobs:
   build_ami:
+    if: github.event.pull_request.merged == true
     name: Build AMI with Packer and Extract AMI ID
     runs-on: ubuntu-latest
     outputs:
@@ -120,54 +122,72 @@ jobs:
           aws-secret-access-key: ${{ secrets.DEMO_AWS_SECRET_ACCESS_KEY }}
           aws-region: us-east-1
 
-      - name: Retrieve Launch Template ID and Update
+      - name: Update Launch Template and Start Instance Refresh
         id: launch_template
         run: |
-          echo "Attempting to retrieve Launch Template..."
-        
-          LAUNCH_TEMPLATE_PREFIX="csye6225-asg"
-        
-          echo "Retrieving all launch templates..."
-          ALL_TEMPLATES=$(aws ec2 describe-launch-templates \
-            --query 'LaunchTemplates[*].[LaunchTemplateName,LaunchTemplateId]' \
+          echo "Looking up launch template with prefix 'csye6225-asg'..."
+          
+          LAUNCH_TEMPLATE_ID=$(aws ec2 describe-launch-templates \
+            --query 'LaunchTemplates[?starts_with(LaunchTemplateName, `csye6225-asg`)].LaunchTemplateId' \
             --output text)
-          echo "Available Launch Templates:"
-          echo "$ALL_TEMPLATES"
-        
-          LAUNCH_TEMPLATE_NAME=""
-          LAUNCH_TEMPLATE_ID=""
-        
-          while read -r NAME ID; do
-            echo "Checking Launch Template Name: $NAME, ID: $ID"
-            if [[ "$NAME" == "$LAUNCH_TEMPLATE_PREFIX"* ]]; then
-              LAUNCH_TEMPLATE_NAME="$NAME"
-              LAUNCH_TEMPLATE_ID="$ID"
-              echo "Match found: $LAUNCH_TEMPLATE_NAME with ID $LAUNCH_TEMPLATE_ID"
-              break
-            fi
-          done <<< "$ALL_TEMPLATES"
-        
+          
+          echo "Found Launch Template ID: ${LAUNCH_TEMPLATE_ID}"
+          
           if [ -z "$LAUNCH_TEMPLATE_ID" ]; then
-            echo "Error: No Launch Template starting with '$LAUNCH_TEMPLATE_PREFIX' found"
+            echo "Error: No launch template found with prefix 'csye6225-asg'"
             exit 1
           fi
-        
-          echo "LAUNCH_TEMPLATE_ID=$LAUNCH_TEMPLATE_ID" >> $GITHUB_ENV
-        
+          
+          echo "Creating new launch template version..."
           NEW_VERSION=$(aws ec2 create-launch-template-version \
-            --launch-template-id $LAUNCH_TEMPLATE_ID \
+            --launch-template-id "${LAUNCH_TEMPLATE_ID}" \
             --source-version '$Latest' \
-            --launch-template-data '{"ImageId":"'"${{ needs.build_ami.outputs.ami_id }}"'"}' \
+            --launch-template-data "{\"ImageId\":\"${{ needs.build_ami.outputs.ami_id }}\"}" \
             --query 'LaunchTemplateVersion.VersionNumber' \
             --output text)
-        
+          
           if [ -z "$NEW_VERSION" ]; then
             echo "Failed to create new launch template version."
             exit 1
           fi
-        
-          echo "New Launch Template Version: $NEW_VERSION"
-        
+          
+          echo "Successfully created version ${NEW_VERSION}"
+          
+          echo "Setting as default version..."
           aws ec2 modify-launch-template \
-            --launch-template-id $LAUNCH_TEMPLATE_ID \
-            --default-version $NEW_VERSION
+            --launch-template-id "${LAUNCH_TEMPLATE_ID}" \
+            --default-version "${NEW_VERSION}"
+
+          echo "Starting instance refresh..."
+          REFRESH_ID=$(aws autoscaling start-instance-refresh \
+            --auto-scaling-group-name csye6225-asg \
+            --preferences '{"MinHealthyPercentage":90}' \
+            --query 'InstanceRefreshId' \
+            --output text)
+            
+          if [ -z "$REFRESH_ID" ]; then
+            echo "Failed to start instance refresh"
+            exit 1
+          fi
+          
+          echo "Monitoring instance refresh status..."
+          while true; do
+            STATUS=$(aws autoscaling describe-instance-refreshes \
+              --auto-scaling-group-name csye6225-asg \
+              --instance-refresh-ids "$REFRESH_ID" \
+              --query 'InstanceRefreshes[0].Status' \
+              --output text)
+            
+            echo "Instance Refresh Status: $STATUS"
+            
+            if [ "$STATUS" = "Successful" ]; then
+              echo "Instance refresh completed successfully"
+              break
+            elif [ "$STATUS" = "Failed" ] || [ "$STATUS" = "Cancelled" ]; then
+              echo "Instance refresh ${STATUS}"
+              exit 1
+            fi
+            
+            echo "Waiting 30 seconds before next check..."
+            sleep 30
+          done
