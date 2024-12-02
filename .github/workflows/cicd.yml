@@ -123,15 +123,21 @@ jobs:
       - name: Retrieve Launch Template ID and Update
         id: launch_template
         run: |
+          echo "Attempting to retrieve Launch Template..."
+          
           LAUNCH_TEMPLATE_ID=$(aws ec2 describe-launch-templates \
             --filters Name=launch-template-name,Values=csye6225-asg \
             --query 'LaunchTemplates[0].LaunchTemplateId' --output text)
           
-          if [ -z "$LAUNCH_TEMPLATE_ID" ]; then
-            echo "Failed to retrieve Launch Template ID from AWS."
+          echo "Retrieved Launch Template ID: $LAUNCH_TEMPLATE_ID"
+          
+          if [ "$LAUNCH_TEMPLATE_ID" = "None" ] || [ -z "$LAUNCH_TEMPLATE_ID" ]; then
+            echo "Error: Launch Template 'csye6225-asg' not found"
+            echo "Available Launch Templates:"
+            aws ec2 describe-launch-templates
             exit 1
           fi
-          
+        
           echo "LAUNCH_TEMPLATE_ID=$LAUNCH_TEMPLATE_ID" >> $GITHUB_ENV
 
           NEW_VERSION=$(aws ec2 create-launch-template-version \
@@ -159,7 +165,7 @@ jobs:
             --preferences '{"MinHealthyPercentage":90}' \
             --query 'InstanceRefreshId' \
             --output text)
-            
+          
           if [ -z "$REFRESH_ID" ]; then
             echo "Failed to start instance refresh."
             exit 1
@@ -184,4 +190,3 @@ jobs:
               echo "Instance refresh is in progress. Checking again in 30 seconds..."
               sleep 30
             fi
-          done
