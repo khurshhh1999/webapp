@@ -120,15 +120,11 @@ jobs:
           aws-secret-access-key: ${{ secrets.DEMO_AWS_SECRET_ACCESS_KEY }}
           aws-region: us-east-1
 
-      - name: Update Launch Template and Start Instance Refresh
+      - name: Update Launch Template
         id: launch_template
         run: |
           echo "Looking up launch templates..."
           
-          # First, list all launch templates to debug
-          aws ec2 describe-launch-templates
-          
-          # Get the launch template ID more explicitly
           LAUNCH_TEMPLATE_ID=$(aws ec2 describe-launch-templates \
             --filters "Name=launch-template-name,Values=csye6225-asg*" \
             --query "LaunchTemplates[0].LaunchTemplateId" \
@@ -136,7 +132,6 @@ jobs:
           
           echo "Found Launch Template ID: '${LAUNCH_TEMPLATE_ID}'"
           
-          # Explicit check for 'None' or empty
           if [ "$LAUNCH_TEMPLATE_ID" = "None" ] || [ -z "$LAUNCH_TEMPLATE_ID" ]; then
             echo "Error: Launch template ID is empty or None"
             echo "Available Launch Templates:"
@@ -144,9 +139,6 @@ jobs:
             exit 1
           fi
           
-          echo "Using Launch Template ID: ${LAUNCH_TEMPLATE_ID}"
-          
-          # Create new version with explicit error checking
           echo "Creating new launch template version..."
           NEW_VERSION=$(aws ec2 create-launch-template-version \
             --launch-template-id "${LAUNCH_TEMPLATE_ID}" \
@@ -160,20 +152,20 @@ jobs:
             exit 1
           fi
           
-          echo "Successfully created version ${NEW_VERSION}"
-          
           echo "Setting as default version..."
           aws ec2 modify-launch-template \
             --launch-template-id "${LAUNCH_TEMPLATE_ID}" \
             --default-version "${NEW_VERSION}"
 
+      - name: Start and Monitor Instance Refresh
+        run: |
           echo "Starting instance refresh..."
           REFRESH_ID=$(aws autoscaling start-instance-refresh \
             --auto-scaling-group-name csye6225-asg \
             --preferences '{"MinHealthyPercentage":90}' \
             --query 'InstanceRefreshId' \
             --output text)
-            
+          
           if [ -z "$REFRESH_ID" ]; then
             echo "Failed to start instance refresh"
             exit 1
@@ -191,12 +183,11 @@ jobs:
             
             if [ "$STATUS" = "Successful" ]; then
               echo "Instance refresh completed successfully"
-              break
+              exit 0
             elif [ "$STATUS" = "Failed" ] || [ "$STATUS" = "Cancelled" ]; then
               echo "Instance refresh ${STATUS}"
               exit 1
             fi
             
-            echo "Waiting 30 seconds before next check..."
             sleep 30
           done
