@@ -123,19 +123,30 @@ jobs:
       - name: Update Launch Template and Start Instance Refresh
         id: launch_template
         run: |
-          echo "Looking up launch template with prefix 'csye6225-asg'..."
+          echo "Looking up launch templates..."
           
+          # First, list all launch templates to debug
+          aws ec2 describe-launch-templates
+          
+          # Get the launch template ID more explicitly
           LAUNCH_TEMPLATE_ID=$(aws ec2 describe-launch-templates \
-            --query 'LaunchTemplates[?starts_with(LaunchTemplateName, `csye6225-asg`)].LaunchTemplateId' \
+            --filters "Name=launch-template-name,Values=csye6225-asg*" \
+            --query "LaunchTemplates[0].LaunchTemplateId" \
             --output text)
           
-          echo "Found Launch Template ID: ${LAUNCH_TEMPLATE_ID}"
+          echo "Found Launch Template ID: '${LAUNCH_TEMPLATE_ID}'"
           
-          if [ -z "$LAUNCH_TEMPLATE_ID" ]; then
-            echo "Error: No launch template found with prefix 'csye6225-asg'"
+          # Explicit check for 'None' or empty
+          if [ "$LAUNCH_TEMPLATE_ID" = "None" ] || [ -z "$LAUNCH_TEMPLATE_ID" ]; then
+            echo "Error: Launch template ID is empty or None"
+            echo "Available Launch Templates:"
+            aws ec2 describe-launch-templates --query 'LaunchTemplates[*].[LaunchTemplateName,LaunchTemplateId]' --output text
             exit 1
           fi
           
+          echo "Using Launch Template ID: ${LAUNCH_TEMPLATE_ID}"
+          
+          # Create new version with explicit error checking
           echo "Creating new launch template version..."
           NEW_VERSION=$(aws ec2 create-launch-template-version \
             --launch-template-id "${LAUNCH_TEMPLATE_ID}" \
