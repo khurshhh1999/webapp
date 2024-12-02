@@ -62,8 +62,8 @@ variable "email_from" {
 }
 
 variable "aws_bucket_name" {
-  type = string
-  default= "your_bucket_name"
+  type    = string
+  default = "your_bucket_name"
 }
 
 variable "aws_sns_topic_arn" {
@@ -182,9 +182,9 @@ build {
     ]
   }
   provisioner "file" {
-  source      = "archive/webapp-0.0.1-SNAPSHOT.jar"
-  destination = "/tmp/webapp/app.jar"
-}
+    source      = "archive/webapp-0.0.1-SNAPSHOT.jar"
+    destination = "/tmp/webapp/app.jar"
+  }
 
 
 
