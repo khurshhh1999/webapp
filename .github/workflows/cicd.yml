@@ -124,20 +124,36 @@ jobs:
         id: launch_template
         run: |
           echo "Attempting to retrieve Launch Template..."
-          
-          LAUNCH_TEMPLATE_ID=$(aws ec2 describe-launch-templates \
-            --filters Name=launch-template-name,Values=csye6225-asg \
-            --query 'LaunchTemplates[0].LaunchTemplateId' --output text)
-          
+
+          # Set the Launch Template name prefix
+          LAUNCH_TEMPLATE_PREFIX="csye6225-asg"
+
+          # Retrieve all Launch Templates and their IDs
+          ALL_TEMPLATES=$(aws ec2 describe-launch-templates \
+            --query 'LaunchTemplates[*].[LaunchTemplateName,LaunchTemplateId]' \
+            --output text)
+
+          # Initialize variables
+          LAUNCH_TEMPLATE_NAME=""
+          LAUNCH_TEMPLATE_ID=""
+
+          # Loop through the templates to find the one that matches the prefix
+          while read -r NAME ID; do
+            if [[ "$NAME" == "$LAUNCH_TEMPLATE_PREFIX"* ]]; then
+              LAUNCH_TEMPLATE_NAME="$NAME"
+              LAUNCH_TEMPLATE_ID="$ID"
+              break
+            fi
+          done <<< "$ALL_TEMPLATES"
+
+          echo "Retrieved Launch Template Name: $LAUNCH_TEMPLATE_NAME"
           echo "Retrieved Launch Template ID: $LAUNCH_TEMPLATE_ID"
-          
-          if [ "$LAUNCH_TEMPLATE_ID" = "None" ] || [ -z "$LAUNCH_TEMPLATE_ID" ]; then
-            echo "Error: Launch Template 'csye6225-asg' not found"
-            echo "Available Launch Templates:"
-            aws ec2 describe-launch-templates
+
+          if [ -z "$LAUNCH_TEMPLATE_ID" ]; then
+            echo "Error: No Launch Template starting with '$LAUNCH_TEMPLATE_PREFIX' found"
             exit 1
           fi
-        
+
           echo "LAUNCH_TEMPLATE_ID=$LAUNCH_TEMPLATE_ID" >> $GITHUB_ENV
 
           NEW_VERSION=$(aws ec2 create-launch-template-version \
