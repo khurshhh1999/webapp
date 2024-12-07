@@ -29,6 +29,7 @@ public class WebSecurityConfig {
             .csrf(csrf -> csrf.disable())
             .authorizeHttpRequests(authorize -> authorize
             .requestMatchers(HttpMethod.GET, "/healthz").permitAll()
+            .requestMatchers(HttpMethod.GET, "/cicd").permitAll()
             .requestMatchers(HttpMethod.POST, "/v1/user").permitAll()
             .requestMatchers(HttpMethod.GET, "/v1/user/self").authenticated()
             .requestMatchers(HttpMethod.PUT, "/v1/user/self").authenticated()
