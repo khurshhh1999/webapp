@@ -18,6 +18,7 @@ public class ApiMethodNotAllowedFilter extends OncePerRequestFilter {
         String method = request.getMethod();
 
         if ((path.equals("/healthz") && !method.equals("GET")) ||
+            (path.equals("/cicd") && !method.equals("GET")) ||
             (path.equals("/v1/user") && !method.equals("POST")) ||
             (path.equals("/v1/user/self/pic") && !(method.equals("POST") || method.equals("GET") || method.equals("DELETE")))) {
             response.setStatus(HttpStatus.METHOD_NOT_ALLOWED.value());
